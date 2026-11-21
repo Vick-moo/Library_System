@@ -29,5 +29,6 @@ data class BookCopy(
     val condition: String,
     val status: String,
     @SerialName("shelf_location") val shelfLocation: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("is_deleted") val isDeleted: Boolean = false
 )

@@ -28,7 +28,9 @@ sealed interface BookDetailUiState {
         /** False when the student already has 2 books borrowed + reserved. */
         val canReserve: Boolean,
         /** Borrowed + reserved count (max 2). */
-        val activeBooks: Int
+        val activeBooks: Int,
+        /** Shelf codes of the available copies (students can find the book). */
+        val shelves: List<String>
     ) : BookDetailUiState
     data class Error(val message: String) : BookDetailUiState
 }
@@ -111,6 +113,11 @@ class BookDetailViewModel(private val bookId: String) : ViewModel() {
                     try { BookRepository.activeReservationCount(me) } catch (_: Exception) { 0 }
                 } else 0
                 val activeBooks = loans + activeRes
+                val shelves = copies
+                    .filter { it.status == "available" }
+                    .mapNotNull { it.shelfLocation }
+                    .distinct()
+                    .sorted()
                 state = BookDetailUiState.Ready(
                     book = book,
                     availableCopies = copies.count { it.status == "available" },
@@ -121,7 +128,8 @@ class BookDetailViewModel(private val bookId: String) : ViewModel() {
                     myReview = myReview,
                     pickupWindow = window,
                     canReserve = activeBooks < 2,
-                    activeBooks = activeBooks
+                    activeBooks = activeBooks,
+                    shelves = shelves
                 )
             } catch (e: Exception) {
                 if (!silent) {

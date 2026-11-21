@@ -36,6 +36,10 @@ class AuthViewModel : ViewModel() {
     var roles by mutableStateOf(setOf<String>())
         private set
 
+    /** admin / librarian / assistant, or null for students/guests. */
+    var staffRole by mutableStateOf<String?>(null)
+        private set
+
     init {
         viewModelScope.launch {
             try {
@@ -43,6 +47,7 @@ class AuthViewModel : ViewModel() {
                 if (em != null) {
                     loggedInEmail = em
                     roles = AuthRepository.myRoles()
+                    staffRole = AuthRepository.myStaffRole()
                 }
             } catch (_: Exception) {
             }
@@ -208,6 +213,7 @@ class AuthViewModel : ViewModel() {
             } finally {
                 loggedInEmail = null
                 roles = emptySet()
+                staffRole = null
                 pendingEmail = null
                 codeSent = false
             }
@@ -226,6 +232,11 @@ class AuthViewModel : ViewModel() {
                     try { AuthRepository.myRoles() } catch (_: Exception) { emptySet() }
                 } else {
                     emptySet()
+                }
+                staffRole = if (em != null) {
+                    try { AuthRepository.myStaffRole() } catch (_: Exception) { null }
+                } else {
+                    null
                 }
             } catch (_: Exception) {
             }

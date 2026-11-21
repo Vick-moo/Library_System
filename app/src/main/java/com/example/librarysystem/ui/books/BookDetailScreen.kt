@@ -121,7 +121,7 @@ fun BookDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     item { DetailHeader(s.book, s.reviews) }
-                    item { AvailabilityCard(s.availableCopies, s.totalCopies) }
+                    item { AvailabilityCard(s.availableCopies, s.totalCopies, s.shelves) }
                     s.myReservation?.let { res ->
                         item {
                             ReservationCard(
@@ -282,7 +282,7 @@ private fun DetailHeader(book: Book, reviews: List<BookReviewRow>) {
 }
 
 @Composable
-private fun AvailabilityCard(available: Int, total: Int) {
+private fun AvailabilityCard(available: Int, total: Int, shelves: List<String>) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Text(
@@ -298,6 +298,14 @@ private fun AvailabilityCard(available: Int, total: Int) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (available > 0 && shelves.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Shelf: " + shelves.joinToString(", "),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }

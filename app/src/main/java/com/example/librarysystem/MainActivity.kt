@@ -27,8 +27,12 @@ import com.example.librarysystem.ui.auth.RegisterScreen
 import com.example.librarysystem.ui.auth.VerifyScreen
 import com.example.librarysystem.ui.books.BookDetailScreen
 import com.example.librarysystem.ui.books.BooksScreen
+import com.example.librarysystem.ui.manage.BookFormScreen
+import com.example.librarysystem.ui.manage.CopiesScreen
+import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
+import com.example.librarysystem.ui.navigation.staffTabs
 import com.example.librarysystem.ui.navigation.studentTabs
 import com.example.librarysystem.ui.profile.ProfileScreen
 import com.example.librarysystem.ui.profile.RequireLoginScreen
@@ -53,7 +57,11 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var stack by remember { mutableStateOf(listOf("home")) }
     var selectedBookId by remember { mutableStateOf<String?>(null) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
+    var staffMode by remember { mutableStateOf(false) }
     val current = stack.last()
+    val isStudent = "student" in authVm.roles
+    val isStaff = authVm.staffRole != null
+
     fun go(route: String) {
         stack = stack + route
     }
@@ -70,25 +78,48 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     BackHandler(enabled = stack.size > 1) { back() }
     // Keep auth UI in sync with the real Supabase session on every screen change.
     LaunchedEffect(current) { authVm.refreshSession() }
+
+    // Staff-only accounts go straight to the staff panel; dual-role accounts stay in student view.
+    LaunchedEffect(authVm.loggedInEmail, isStaff, isStudent) {
+        staffMode = isStaff && !isStudent
+    }
+    // If we just entered staff mode while sitting on a student tab, move to Manage.
+    LaunchedEffect(staffMode) {
+        if (staffMode && current in setOf("home", "trends", "borrow", "seats")) {
+            stack = listOf("manage")
+        }
+    }
+
     val inAuth = current == "login" || current == "register" || current == "verify"
     Scaffold(
         bottomBar = {
             if (!inAuth) {
                 NavigationBar {
-                    studentTabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = current == tab.route,
-                            onClick = {
-                                if (tab.route == "borrow" && authVm.loggedInEmail == null) {
-                                    pendingRoute = "borrow"
-                                    stack = listOf("login")
-                                } else {
-                                    goTab(tab.route)
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
-                        )
+                    if (staffMode) {
+                        staffTabs.forEach { tab ->
+                            NavigationBarItem(
+                                selected = current == tab.route,
+                                onClick = { goTab(tab.route) },
+                                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                label = { Text(tab.label) }
+                            )
+                        }
+                    } else {
+                        studentTabs.forEach { tab ->
+                            NavigationBarItem(
+                                selected = current == tab.route,
+                                onClick = {
+                                    if (tab.route == "borrow" && authVm.loggedInEmail == null) {
+                                        pendingRoute = "borrow"
+                                        stack = listOf("login")
+                                    } else {
+                                        goTab(tab.route)
+                                    }
+                                },
+                                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                label = { Text(tab.label) }
+                            )
+                        }
                     }
                 }
             }
@@ -142,11 +173,43 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                         onNeedLogin = { go("login") }
                     )
                 }
+                "manage" -> ManageScreen(
+                    onAddBook = { go("manage-add") },
+                    onEditBook = { id ->
+                        selectedBookId = id
+                        go("manage-edit")
+                    },
+                    onOpenCopies = { id ->
+                        selectedBookId = id
+                        go("manage-copies")
+                    }
+                )
+                "manage-add" -> BookFormScreen(
+                    bookId = null,
+                    onBack = ::back,
+                    onSaved = { goTab("manage") }
+                )
+                "manage-edit" -> selectedBookId?.let { id ->
+                    BookFormScreen(
+                        bookId = id,
+                        onBack = ::back,
+                        onSaved = { goTab("manage") }
+                    )
+                }
+                "manage-copies" -> selectedBookId?.let { id ->
+                    CopiesScreen(bookId = id, onBack = ::back)
+                }
                 "profile" -> ProfileScreen(
                     loggedInEmail = authVm.loggedInEmail,
                     roles = authVm.roles,
+                    staffRole = authVm.staffRole,
+                    staffMode = staffMode,
                     onGoLogin = { go("login") },
-                    onLogout = { authVm.logout() }
+                    onLogout = { authVm.logout() },
+                    onSwitchMode = {
+                        staffMode = !staffMode
+                        goTab(if (staffMode) "manage" else "home")
+                    }
                 )
                 else -> HomeScreen()
             }

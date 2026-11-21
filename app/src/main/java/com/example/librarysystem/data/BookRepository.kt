@@ -55,6 +55,54 @@ private data class TrendingParams(
 )
 
 @Serializable
+private data class NewBook(
+    val isbn: String,
+    val title: String,
+    val author: String,
+    val publisher: String,
+    @SerialName("publish_year") val publishYear: Int,
+    val category: String,
+    val language: String,
+    val pages: Int,
+    val price: Double,
+    val description: String
+)
+
+@Serializable
+private data class BookUpdate(
+    val title: String,
+    val author: String,
+    val publisher: String,
+    @SerialName("publish_year") val publishYear: Int,
+    val category: String,
+    val language: String,
+    val pages: Int,
+    val price: Double,
+    val description: String
+)
+
+@Serializable
+private data class NewCopy(
+    @SerialName("book_id") val bookId: String,
+    @SerialName("copy_no") val copyNo: String,
+    val condition: String,
+    val status: String,
+    @SerialName("shelf_location") val shelfLocation: String,
+    val notes: String? = null
+)
+
+@Serializable
+private data class CopyUpdate(
+    val condition: String,
+    val status: String,
+    @SerialName("shelf_location") val shelfLocation: String,
+    val notes: String? = null
+)
+
+@Serializable
+private data class DeletedFlag(@SerialName("is_deleted") val isDeleted: Boolean = true)
+
+@Serializable
 private data class BorrowIdRow(@SerialName("borrow_id") val id: String)
 
 @Serializable
@@ -105,13 +153,11 @@ object BookRepository {
             .decodeList<Book>()
     }
 
+    /** Student-facing copy list: public view without staff notes. */
     suspend fun copiesOf(bookId: String): List<BookCopy> =
-        supabase.from("book_copy")
+        supabase.from("book_copy_public")
             .select {
-                filter {
-                    eq("book_id", bookId)
-                    eq("is_deleted", false)
-                }
+                filter { eq("book_id", bookId) }
             }
             .decodeList<BookCopy>()
 
@@ -229,6 +275,143 @@ object BookRepository {
         )
         return supabase.postgrest.rpc("trending_books", params)
             .decodeList<TrendingBook>()
+    }
+
+    // ---- M1 staff: catalogue management ----
+
+    /** All non-deleted books for the staff panel (includes archived copies count later). */
+    suspend fun allBooksForStaff(): List<Book> =
+        supabase.from("book")
+            .select {
+                filter { eq("is_deleted", false) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<Book>()
+
+    suspend fun createBook(
+        isbn: String,
+        title: String,
+        author: String,
+        publisher: String,
+        publishYear: Int,
+        category: String,
+        language: String,
+        pages: Int,
+        price: Double,
+        description: String
+    ): Book =
+        supabase.from("book").insert(
+            NewBook(
+                isbn = isbn,
+                title = title,
+                author = author,
+                publisher = publisher,
+                publishYear = publishYear,
+                category = category,
+                language = language,
+                pages = pages,
+                price = price,
+                description = description
+            )
+        ) {
+            select()
+        }.decodeSingle<Book>()
+
+    suspend fun updateBook(
+        bookId: String,
+        title: String,
+        author: String,
+        publisher: String,
+        publishYear: Int,
+        category: String,
+        language: String,
+        pages: Int,
+        price: Double,
+        description: String
+    ) {
+        supabase.from("book").update(
+            BookUpdate(
+                title = title,
+                author = author,
+                publisher = publisher,
+                publishYear = publishYear,
+                category = category,
+                language = language,
+                pages = pages,
+                price = price,
+                description = description
+            )
+        ) {
+            filter { eq("book_id", bookId) }
+        }
+    }
+
+    suspend fun softDeleteBook(bookId: String) {
+        supabase.from("book").update(DeletedFlag(true)) {
+            filter { eq("book_id", bookId) }
+        }
+    }
+
+    /** All copies of a book for staff (includes notes and deleted rows). */
+    suspend fun copiesForStaff(bookId: String): List<BookCopy> =
+        supabase.from("book_copy")
+            .select {
+                filter { eq("book_id", bookId) }
+                order("copy_no", Order.ASCENDING)
+            }
+            .decodeList<BookCopy>()
+
+    /** Every live copy, used to compute stock counts in the manage list. */
+    suspend fun allCopiesForStaff(): List<BookCopy> =
+        supabase.from("book_copy")
+            .select {
+                filter { eq("is_deleted", false) }
+            }
+            .decodeList<BookCopy>()
+
+    suspend fun createCopy(
+        bookId: String,
+        copyNo: String,
+        condition: String,
+        status: String,
+        shelfLocation: String,
+        notes: String?
+    ) {
+        supabase.from("book_copy").insert(
+            NewCopy(
+                bookId = bookId,
+                copyNo = copyNo,
+                condition = condition,
+                status = status,
+                shelfLocation = shelfLocation,
+                notes = notes?.trim()?.ifBlank { null }
+            )
+        )
+    }
+
+    suspend fun updateCopy(
+        copyId: String,
+        condition: String,
+        status: String,
+        shelfLocation: String,
+        notes: String?
+    ) {
+        supabase.from("book_copy").update(
+            CopyUpdate(
+                condition = condition,
+                status = status,
+                shelfLocation = shelfLocation,
+                notes = notes?.trim()?.ifBlank { null }
+            )
+        ) {
+            filter { eq("copy_id", copyId) }
+        }
+    }
+
+    suspend fun softDeleteCopy(copyId: String) {
+        supabase.from("book_copy").update(DeletedFlag(true)) {
+            filter { eq("copy_id", copyId) }
+        }
     }
 
     /** Active (waiting / ready) reservation for this student and book, if any. */

@@ -2,10 +2,11 @@ package com.example.librarysystem.ui.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AssistChip
@@ -20,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Row
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,12 +28,18 @@ fun ProfileScreen(
     loggedInEmail: String?,
     roles: Set<String>,
     onGoLogin: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    staffRole: String? = null,
+    staffMode: Boolean = false,
+    onSwitchMode: () -> Unit = {}
 ) {
+    val isStudent = "student" in roles
+    val canSwitch = staffRole != null && isStudent
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(if (staffMode) "Staff profile" else "Profile") },
                 windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
@@ -44,24 +50,52 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (loggedInEmail == null) {
-                Text("You are browsing as guest",
+                Text(
+                    "You are browsing as guest",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold)
-                Text("Login to borrow, reserve and review.",
-                    style = MaterialTheme.typography.bodyMedium)
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Login to borrow, reserve and review.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 Button(onClick = onGoLogin, modifier = Modifier.fillMaxWidth()) {
                     Text("Login / Register")
                 }
             } else {
-                Text("Signed in", style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold)
+                Text(
+                    if (staffMode) "Signed in as staff" else "Signed in",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(loggedInEmail, style = MaterialTheme.typography.bodyMedium)
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    roles.forEach { role ->
-                        AssistChip(onClick = {}, label = { Text(role) })
+                    if (staffRole != null) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("staff · $staffRole") }
+                        )
+                    }
+                    if (isStudent) {
+                        AssistChip(onClick = {}, label = { Text("student") })
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+
+                Spacer(Modifier.height(4.dp))
+
+                if (canSwitch) {
+                    OutlinedButton(
+                        onClick = onSwitchMode,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (staffMode) "Switch to student view"
+                            else "Switch to staff panel"
+                        )
+                    }
+                }
+
                 OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
                     Text("Logout")
                 }
@@ -84,17 +118,16 @@ fun RequireLoginScreen(onGoLogin: () -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Please login first", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold)
-            Text("Borrowing and reservations need an account.",
-                style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Please login to continue.",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Button(onClick = onGoLogin, modifier = Modifier.fillMaxWidth()) {
-                Text("Login / Register")
+                Text("Login")
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }
