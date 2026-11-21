@@ -4,13 +4,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -193,7 +198,7 @@ private fun CopyRow(copy: BookCopy, onClick: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun CopyDialog(
     title: String,
@@ -217,7 +222,12 @@ private fun CopyDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = copyNo,
                     onValueChange = { copyNo = it },
@@ -225,8 +235,12 @@ private fun CopyDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("Condition", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                Text("Condition", style = MaterialTheme.typography.labelLarge)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     CONDITIONS.forEach { c ->
                         FilterChip(
                             selected = condition == c,
@@ -235,8 +249,12 @@ private fun CopyDialog(
                         )
                     }
                 }
-                Text("Status", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                Text("Status", style = MaterialTheme.typography.labelLarge)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     STATUSES.forEach { s ->
                         FilterChip(
                             selected = status == s,
@@ -245,10 +263,12 @@ private fun CopyDialog(
                         )
                     }
                 }
+
                 OutlinedTextField(
                     value = shelf,
                     onValueChange = { shelf = it },
-                    label = { Text("Shelf location (e.g. B-12)") },
+                    label = { Text("Shelf location") },
+                    placeholder = { Text("B-12") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -257,6 +277,7 @@ private fun CopyDialog(
                     onValueChange = { if (it.length <= 200) notes = it },
                     label = { Text("Staff notes (optional)") },
                     minLines = 2,
+                    maxLines = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

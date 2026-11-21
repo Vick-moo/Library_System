@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,13 +57,13 @@ fun ManageScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Manage catalogue") },
-                actions = {
-                    IconButton(onClick = onAddBook) {
-                        Icon(Icons.Filled.Add, contentDescription = "Add book")
-                    }
-                },
                 windowInsets = WindowInsets(0, 0, 0, 0)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddBook) {
+                Icon(Icons.Filled.Add, contentDescription = "Add book")
+            }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -112,7 +113,7 @@ fun ManageScreen(
                                     thickness = 1.dp
                                 )
                             }
-                            item { Spacer(Modifier.height(16.dp)) }
+                            item { Spacer(Modifier.height(88.dp)) }
                         }
                     }
                 }

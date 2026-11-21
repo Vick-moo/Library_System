@@ -46,6 +46,10 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
     var error by mutableStateOf<String?>(null)
         private set
 
+    /** True once the user edits any field (used for the discard confirmation). */
+    var dirty by mutableStateOf(false)
+        private set
+
     init {
         if (bookId != null) load()
     }
@@ -65,6 +69,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
             "copies" -> copyCount = value.filter { it.isDigit() }
             "shelf" -> shelfLocation = value
         }
+        dirty = true
         error = null
     }
 
