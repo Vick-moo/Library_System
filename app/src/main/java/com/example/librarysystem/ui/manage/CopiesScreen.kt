@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.model.BookCopy
+import androidx.compose.runtime.LaunchedEffect
 
 private val CONDITIONS = listOf("new", "good", "fair", "damaged")
 private val STATUSES = listOf("available", "borrowed", "reserved", "unavailable")
@@ -54,6 +55,11 @@ fun CopiesScreen(
 ) {
     var editing by remember { mutableStateOf<BookCopy?>(null) }
     var adding by remember { mutableStateOf(false) }
+
+    // Re-enter refresh (cached ViewModel).
+    LaunchedEffect(Unit) {
+        if (vm.copies.isNotEmpty()) vm.load()
+    }
 
     Scaffold(
         topBar = {

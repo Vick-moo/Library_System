@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +48,10 @@ fun ManageScreen(
     onOpenCopies: (String) -> Unit,
     vm: ManageViewModel = viewModel()
 ) {
+    // Re-entering the screen (e.g. after saving a book) reuses the cached VM; refresh silently.
+    LaunchedEffect(Unit) {
+        if (vm.books.isNotEmpty()) vm.load()
+    }
     Scaffold(
         topBar = {
             TopAppBar(
