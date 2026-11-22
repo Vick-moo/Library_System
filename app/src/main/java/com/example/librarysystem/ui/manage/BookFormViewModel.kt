@@ -211,6 +211,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
             return "Price must be between 0.01 and 100000"
         }
         if (description.isBlank()) return "Description is required"
+        if (coverUri == null && existingCoverUrl.isNullOrBlank()) return "Cover image is required"
         if (bookId == null) {
             if ((copyCount.toIntOrNull() ?: 0) !in 1..50) return "Copy count must be between 1 and 50"
             if (shelfLocation.isBlank()) return "Shelf location is required for new copies"
