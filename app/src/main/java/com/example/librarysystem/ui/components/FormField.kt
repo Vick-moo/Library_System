@@ -5,19 +5,26 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * Standard form field: label sits above the box, the hint lives inside.
  * Enforces maxLength while typing; multi-line fields also cap their height.
+ * Scrolls itself back into view whenever the user types (keyboard can cover it after manual scrolling).
  */
 @Composable
 fun LabeledField(
@@ -33,7 +40,10 @@ fun LabeledField(
     required: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxWidth()) {
+    val requester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+
+    Column(modifier.fillMaxWidth().bringIntoViewRequester(requester)) {
         Row {
             Text(
                 label,
@@ -52,7 +62,13 @@ fun LabeledField(
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
-            onValueChange = { new -> if (new.length <= maxLength) onValueChange(new) },
+            onValueChange = { new ->
+                if (new.length <= maxLength) {
+                    onValueChange(new)
+                    // Keep the field visible above the keyboard, even after manual scrolling.
+                    scope.launch { requester.bringIntoView() }
+                }
+            },
             placeholder = {
                 if (placeholder.isNotBlank()) {
                     Text(
@@ -67,7 +83,13 @@ fun LabeledField(
             maxLines = maxLines,
             readOnly = readOnly,
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state ->
+                    if (state.isFocused) {
+                        scope.launch { requester.bringIntoView() }
+                    }
+                }
         )
     }
 }
