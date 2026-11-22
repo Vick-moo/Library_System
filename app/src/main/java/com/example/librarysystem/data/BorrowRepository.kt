@@ -46,6 +46,12 @@ private data class NewFine(
 @Serializable
 private data class CopyStatus(val status: String)
 
+@Serializable
+private data class FineIdRow(@SerialName("fine_id") val id: String)
+
+@Serializable
+private data class FineAmountOnly(val amount: Double)
+
 object BorrowRepository {
 
     private const val LOAN_DAYS = 14L
@@ -128,14 +134,31 @@ object BorrowRepository {
 
         if (overdue > 0) {
             val amount = minOf(overdue * FINE_PER_DAY, FINE_CAP)
-            supabase.from("fine").insert(
-                NewFine(
-                    studentNo = studentNo,
-                    borrowId = borrowId,
-                    fineType = "overdue",
-                    amount = amount
+            // (borrow_id, fine_type) is unique — update the existing overdue fine instead of inserting twice.
+            val existing = supabase.from("fine")
+                .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("fine_id")) {
+                    filter {
+                        eq("borrow_id", borrowId)
+                        eq("fine_type", "overdue")
+                    }
+                    limit(1)
+                }
+                .decodeList<FineIdRow>()
+
+            if (existing.isEmpty()) {
+                supabase.from("fine").insert(
+                    NewFine(
+                        studentNo = studentNo,
+                        borrowId = borrowId,
+                        fineType = "overdue",
+                        amount = amount
+                    )
                 )
-            )
+            } else {
+                supabase.from("fine").update(FineAmountOnly(amount)) {
+                    filter { eq("fine_id", existing.first().id) }
+                }
+            }
         }
 
         return overdue
