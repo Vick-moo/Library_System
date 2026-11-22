@@ -32,6 +32,7 @@ import com.example.librarysystem.ui.manage.BookFormScreen
 import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
 import com.example.librarysystem.ui.manage.ManageScreen
+import com.example.librarysystem.ui.borrow.BorrowDeskScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
@@ -89,10 +90,10 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     LaunchedEffect(authVm.loggedInEmail, isStaff, isStudent) {
         staffMode = isStaff && !isStudent
     }
-    // If we just entered staff mode while sitting on a student tab, move to Manage.
+    // If we just entered staff mode while sitting on a student tab, move to the borrow desk.
     LaunchedEffect(staffMode) {
         if (staffMode && current in setOf("home", "trends", "borrow", "seats")) {
-            stack = listOf("manage")
+            stack = listOf("borrow-desk")
         }
     }
 
@@ -195,6 +196,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                         onNeedLogin = { go("login") }
                     )
                 }
+                "borrow-desk" -> BorrowDeskScreen()
                 "manage" -> ManageScreen(
                     onAddBook = {
                         formSeq++
@@ -255,7 +257,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     onLogout = { authVm.logout() },
                     onSwitchMode = {
                         staffMode = !staffMode
-                        goTab(if (staffMode) "manage" else "home")
+                        goTab(if (staffMode) "borrow-desk" else "home")
                     }
                 )
                 else -> HomeScreen()

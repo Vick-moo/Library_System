@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
@@ -20,8 +21,9 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
 val studentTabs = listOf(Tab.Home, Tab.Trends, Tab.Borrow, Tab.Seats, Tab.Profile)
 
 sealed class StaffTab(val route: String, val label: String, val icon: ImageVector) {
+    data object Borrow : StaffTab("borrow-desk", "Borrow", Icons.Filled.SwapHoriz)
     data object Manage : StaffTab("manage", "Manage", Icons.Filled.MenuBook)
     data object Profile : StaffTab("profile", "Profile", Icons.Filled.AccountCircle)
 }
 
-val staffTabs = listOf(StaffTab.Manage, StaffTab.Profile)
+val staffTabs = listOf(StaffTab.Borrow, StaffTab.Manage, StaffTab.Profile)

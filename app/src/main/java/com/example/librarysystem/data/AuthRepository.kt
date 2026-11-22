@@ -25,6 +25,9 @@ private data class FullNameRow(@SerialName("full_name") val fullName: String?)
 @Serializable
 private data class StaffRoleRow(@SerialName("staff_role") val role: String)
 
+@Serializable
+private data class StaffNoOnly(@SerialName("staff_no") val staffNo: String)
+
 object AuthRepository {
 
     /** Whitelist check works for guests (SECURITY DEFINER, granted to anon). */
@@ -117,6 +120,21 @@ object AuthRepository {
                 filter { eq("account_id", acc.account_id) }
             }
             .decodeSingleOrNull<StaffRoleRow>()?.role
+    }
+
+    /** staff_no of the logged-in staff member. */
+    suspend fun myStaffNo(): String? {
+        val email = currentEmail() ?: return null
+        val acc = supabase.from("account")
+            .select(columns = Columns.list("account_id")) {
+                filter { eq("email", email) }
+            }
+            .decodeSingleOrNull<AccountIdRow>() ?: return null
+        return supabase.from("staff")
+            .select(columns = Columns.list("staff_no")) {
+                filter { eq("account_id", acc.account_id) }
+            }
+            .decodeSingleOrNull<StaffNoOnly>()?.staffNo
     }
 
     /** Roles of the current user: subset of {"student", "staff"}. */
