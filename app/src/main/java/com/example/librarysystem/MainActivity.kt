@@ -33,6 +33,7 @@ import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
 import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.borrow.BorrowDeskScreen
+import com.example.librarysystem.ui.fines.FineDeskScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
@@ -65,6 +66,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var formSeq by remember { mutableStateOf(0) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
     var staffMode by remember { mutableStateOf(false) }
+    /** One-shot message shown when the staff lands back on the borrow desk. */
+    var staffNotice by remember { mutableStateOf<String?>(null) }
     val current = stack.last()
     val isStudent = "student" in authVm.roles
     val isStaff = authVm.staffRole != null
@@ -101,7 +104,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
-        "manage-copy-edit", "manage-book", "category"
+        "manage-copy-edit", "manage-book", "category", "fines"
     )
     Scaffold(
         bottomBar = {
@@ -196,7 +199,22 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                         onNeedLogin = { go("login") }
                     )
                 }
-                "borrow-desk" -> BorrowDeskScreen()
+                "borrow-desk" -> BorrowDeskScreen(
+                    onOpenFines = { go("fines") },
+                    flashNotice = staffNotice,
+                    onFlashConsumed = { staffNotice = null }
+                )
+                "fines" -> FineDeskScreen(
+                    onBack = ::back,
+                    onPaid = { fine ->
+                        staffNotice = "Fine RM %.2f for %s marked paid — you can return the book now."
+                            .format(
+                                fine.amount,
+                                fine.studentName.ifBlank { fine.studentNo }
+                            )
+                        back()
+                    }
+                )
                 "manage" -> ManageScreen(
                     onAddBook = {
                         formSeq++

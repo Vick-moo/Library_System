@@ -1,7 +1,11 @@
 package com.example.librarysystem.data
 
+import com.example.librarysystem.data.model.ActionResult
 import com.example.librarysystem.data.model.ActiveLoan
 import com.example.librarysystem.data.model.AvailableCopy
+import com.example.librarysystem.data.model.FineRow
+import com.example.librarysystem.data.model.ReturnResult
+import com.example.librarysystem.data.model.SettleResult
 import com.example.librarysystem.data.model.StudentCard
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -9,13 +13,34 @@ import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 @Serializable
 private data class QueryParam(@SerialName("p_query") val query: String)
 
 @Serializable
+private data class StatusQueryParam(
+    @SerialName("p_status") val status: String,
+    @SerialName("p_query") val query: String?
+)
+
+@Serializable
 private data class StudentParam(@SerialName("p_student_no") val studentNo: String)
+
+@Serializable
+private data class BorrowIdParam(@SerialName("p_borrow_id") val borrowId: String)
+
+@Serializable
+private data class FineIdParam(
+    @SerialName("p_fine_id") val fineId: String,
+    @SerialName("p_status") val status: String
+)
+
+@Serializable
+private data class DamageParam(
+    @SerialName("p_borrow_id") val borrowId: String,
+    @SerialName("p_category") val category: String,
+    @SerialName("p_description") val description: String?
+)
 
 @Serializable
 private data class NewBorrow(
@@ -28,35 +53,11 @@ private data class NewBorrow(
 )
 
 @Serializable
-private data class ReturnUpdate(
-    @SerialName("return_date") val returnDate: String,
-    @SerialName("received_by") val receivedBy: String,
-    val status: String
-)
-
-@Serializable
-private data class NewFine(
-    @SerialName("student_no") val studentNo: String,
-    @SerialName("borrow_id") val borrowId: String? = null,
-    @SerialName("fine_type") val fineType: String,
-    val amount: Double,
-    @SerialName("book_price") val bookPrice: Double? = null
-)
-
-@Serializable
 private data class CopyStatus(val status: String)
-
-@Serializable
-private data class FineIdRow(@SerialName("fine_id") val id: String)
-
-@Serializable
-private data class FineAmountOnly(val amount: Double)
 
 object BorrowRepository {
 
     private const val LOAN_DAYS = 14L
-    private const val FINE_PER_DAY = 0.5
-    private const val FINE_CAP = 10.0
 
     suspend fun activeLoans(query: String? = null): List<ActiveLoan> {
         val res = if (query.isNullOrBlank()) {
@@ -102,65 +103,40 @@ object BorrowRepository {
     }
 
     /**
-     * Marks the loan returned, frees the copy, and creates an overdue fine if late.
-     * Returns overdue days (0 when on time).
+     * Works out the overdue fine for one loan and writes it as `unpaid`.
+     * The amount is fixed at the moment this runs, so it cannot grow while
+     * the staff member walks to the cash drawer.
      */
-    suspend fun returnLoan(
+    suspend fun settleOverdue(borrowId: String): SettleResult =
+        supabase.postgrest.rpc("staff_settle_overdue", BorrowIdParam(borrowId))
+            .decodeList<SettleResult>()
+            .firstOrNull() ?: SettleResult(alreadySettled = true)
+
+    /** Server-side return; refuses while the loan still carries an unpaid fine. */
+    suspend fun returnLoan(borrowId: String): ReturnResult =
+        supabase.postgrest.rpc("staff_return_loan", BorrowIdParam(borrowId))
+            .decodeList<ReturnResult>()
+            .firstOrNull() ?: ReturnResult(false, "UNKNOWN")
+
+    /** Records damage/loss, charges the matching fine and takes the copy out of circulation. */
+    suspend fun reportDamage(
         borrowId: String,
-        copyId: String,
-        studentNo: String,
-        dueDate: String,
-        staffNo: String
-    ): Int {
-        val today = LocalDate.now()
-        val overdue = maxOf(
-            0,
-            ChronoUnit.DAYS.between(LocalDate.parse(dueDate), today).toInt()
-        )
+        category: String,
+        description: String?
+    ): ActionResult =
+        supabase.postgrest.rpc(
+            "staff_report_damage",
+            DamageParam(borrowId, category, description?.trim()?.ifBlank { null })
+        ).decodeList<ActionResult>().firstOrNull() ?: ActionResult(false, "UNKNOWN")
 
-        supabase.from("borrow_record").update(
-            ReturnUpdate(
-                returnDate = today.toString(),
-                receivedBy = staffNo,
-                status = "returned"
-            )
-        ) {
-            filter { eq("borrow_id", borrowId) }
-        }
+    suspend fun fines(status: String, query: String? = null): List<FineRow> =
+        supabase.postgrest.rpc(
+            "staff_fines",
+            StatusQueryParam(status, query?.trim()?.ifBlank { null })
+        ).decodeList<FineRow>()
 
-        supabase.from("book_copy").update(CopyStatus("available")) {
-            filter { eq("copy_id", copyId) }
-        }
-
-        if (overdue > 0) {
-            val amount = minOf(overdue * FINE_PER_DAY, FINE_CAP)
-            // (borrow_id, fine_type) is unique — update the existing overdue fine instead of inserting twice.
-            val existing = supabase.from("fine")
-                .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("fine_id")) {
-                    filter {
-                        eq("borrow_id", borrowId)
-                        eq("fine_type", "overdue")
-                    }
-                    limit(1)
-                }
-                .decodeList<FineIdRow>()
-
-            if (existing.isEmpty()) {
-                supabase.from("fine").insert(
-                    NewFine(
-                        studentNo = studentNo,
-                        borrowId = borrowId,
-                        fineType = "overdue",
-                        amount = amount
-                    )
-                )
-            } else {
-                supabase.from("fine").update(FineAmountOnly(amount)) {
-                    filter { eq("fine_id", existing.first().id) }
-                }
-            }
-        }
-
-        return overdue
-    }
+    suspend fun markFine(fineId: String, status: String): ActionResult =
+        supabase.postgrest.rpc("staff_mark_fine", FineIdParam(fineId, status))
+            .decodeList<ActionResult>()
+            .firstOrNull() ?: ActionResult(false, "UNKNOWN")
 }
