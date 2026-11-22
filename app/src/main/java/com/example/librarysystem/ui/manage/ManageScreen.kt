@@ -134,7 +134,7 @@ private fun ManageBookRow(
         Box(
             modifier = Modifier
                 .width(44.dp)
-                .height(60.dp)
+                .height(66.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center

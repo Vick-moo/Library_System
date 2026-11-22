@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -211,14 +213,14 @@ private fun DetailHeader(book: Book, reviews: List<BookReviewRow>) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .width(110.dp)
-                    .height(150.dp)
+                    .height(165.dp)
                     .clip(RoundedCornerShape(10.dp))
             )
         } else {
             Box(
                 modifier = Modifier
                     .width(110.dp)
-                    .height(150.dp)
+                    .height(165.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -567,7 +569,7 @@ private fun ReserveDialog(
         onDismissRequest = onDismiss,
         title = { Text("Reserve this book") },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text("Pickup window", style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
@@ -589,6 +591,7 @@ private fun ReserveDialog(
                     onValueChange = { if (it.length <= 200) note = it },
                     label = { Text("Message for the librarian (optional)") },
                     minLines = 2,
+                    maxLines = 4,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -619,7 +622,7 @@ private fun ReviewDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Write a review" else "Edit review") },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 Row {
                     repeat(5) { i ->
                         Icon(
@@ -638,6 +641,7 @@ private fun ReviewDialog(
                     onValueChange = { if (it.length <= 500) comment = it },
                     label = { Text("Your thoughts (optional)") },
                     minLines = 3,
+                    maxLines = 6,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

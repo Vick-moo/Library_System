@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -403,12 +404,12 @@ fun MiniBookCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp)
+                        .aspectRatio(2f / 3f)
                         .clip(RoundedCornerShape(8.dp))
                 )
             } else {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(110.dp)
+                    modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center

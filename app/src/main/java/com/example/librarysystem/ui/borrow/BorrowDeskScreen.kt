@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -43,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,6 +55,7 @@ import com.example.librarysystem.ui.components.LabeledField
 import com.example.librarysystem.ui.components.LibraryTopAppBar
 import com.example.librarysystem.ui.damage.DamageTab
 import com.example.librarysystem.ui.fines.FineTab
+import android.content.res.Configuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,8 +81,12 @@ fun BorrowDeskScreen(
         }
     }
 
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Scaffold(
-        topBar = { LibraryTopAppBar(title = "Borrow desk") },
+        topBar = {
+            if (!landscape) LibraryTopAppBar(title = "Borrow desk")
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -275,25 +280,33 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
 
 @Composable
 private fun BorrowActionBar(vm: BorrowDeskViewModel) {
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Surface(
         tonalElevation = 3.dp,
         shadowElevation = 8.dp
     ) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
-            val selected = vm.selectedCopy
-            if (selected != null) {
-                Text(
-                    "${selected.bookTitle} · ${selected.copyNo}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(6.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .padding(horizontal = 16.dp, vertical = if (landscape) 6.dp else 16.dp)
+        ) {
+            if (!landscape) {
+                val selected = vm.selectedCopy
+                if (selected != null) {
+                    Text(
+                        "${selected.bookTitle} · ${selected.copyNo}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
             }
             Button(
                 onClick = vm::confirmBorrow,
-                enabled = !vm.busy && selected != null && vm.studentCard != null,
+                enabled = !vm.busy && vm.selectedCopy != null && vm.studentCard != null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(if (vm.busy) "Borrowing…" else "Borrow selected copy")

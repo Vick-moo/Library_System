@@ -1,6 +1,7 @@
 package com.example.librarysystem
 
 import android.os.Bundle
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.ui.auth.AuthViewModel
 import com.example.librarysystem.ui.auth.LoginScreen
@@ -108,6 +110,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
         "manage-add", "manage-edit", "manage-copies",
         "manage-copy-edit", "manage-book", "category", "damage-form"
     )
+    // Landscape phones have very little vertical room: icons only, no labels.
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Scaffold(
         bottomBar = {
             if (!hideBottomBar) {
@@ -118,7 +122,9 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                                 selected = current == tab.route,
                                 onClick = { goTab(tab.route) },
                                 icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = { Text(tab.label) }
+                                label = if (landscape) null else {
+                                    { Text(tab.label) }
+                                }
                             )
                         }
                     } else {
@@ -134,7 +140,9 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                                     }
                                 },
                                 icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = { Text(tab.label) }
+                                label = if (landscape) null else {
+                                    { Text(tab.label) }
+                                }
                             )
                         }
                     }

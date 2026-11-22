@@ -1,14 +1,20 @@
 package com.example.librarysystem.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -23,13 +29,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.librarysystem.ui.components.LibraryTopAppBar
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,26 +55,26 @@ fun LoginScreen(
         LibraryTopAppBar(title = "Login", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Welcome back", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold)
-            OutlinedTextField(
+            ScrollOnFocusField(
                 value = vm.email,
                 onValueChange = vm::updateEmail,
-                label = { Text("School email") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                label = "School email"
             )
-            OutlinedTextField(
+            ScrollOnFocusField(
                 value = vm.password,
                 onValueChange = vm::updatePassword,
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
+                label = "Password",
+                isPassword = true
             )
             vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(
@@ -82,7 +93,6 @@ fun LoginScreen(
             TextButton(onClick = onGuest, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Text("Continue as guest")
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -99,28 +109,28 @@ fun RegisterScreen(
         LibraryTopAppBar(title = "Register", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Create your account", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold)
             Text("Use your school email on the whitelist.",
                 style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(
+            ScrollOnFocusField(
                 value = vm.email,
                 onValueChange = vm::updateEmail,
-                label = { Text("School email") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                label = "School email"
             )
-            OutlinedTextField(
+            ScrollOnFocusField(
                 value = vm.password,
                 onValueChange = vm::updatePassword,
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
+                label = "Password",
+                isPassword = true
             )
             vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             vm.info?.let { Text(it) }
@@ -137,7 +147,6 @@ fun RegisterScreen(
             TextButton(onClick = onBackToLogin, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Text("Already have an account? Login")
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -153,20 +162,23 @@ fun VerifyScreen(
         LibraryTopAppBar(title = "Verify email", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Enter the 6-digit code", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold)
             Text("Sent to ${vm.pendingEmail ?: vm.email}. Check spam folder too.",
                 style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(
+            ScrollOnFocusField(
                 value = vm.code,
                 onValueChange = vm::updateCode,
-                label = { Text("6-digit code") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                label = "6-digit code",
+                keyboardType = KeyboardType.Number
             )
             vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             vm.info?.let { Text(it) }
@@ -187,7 +199,44 @@ fun VerifyScreen(
             ) {
                 Text("Resend code")
             }
-            Spacer(Modifier.weight(1f))
         }
+    }
+}
+
+@Composable
+private fun ScrollOnFocusField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isPassword: Boolean = false
+) {
+    val requester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    Box(Modifier.fillMaxWidth().bringIntoViewRequester(requester)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                onValueChange(it)
+                scope.launch { requester.bringIntoView() }
+            },
+            label = { Text(label) },
+            singleLine = true,
+            visualTransformation =
+                if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state ->
+                    if (state.isFocused) {
+                        scope.launch {
+                            requester.bringIntoView()
+                            // The keyboard animates in after focus; nudge again once it settled.
+                            kotlinx.coroutines.delay(350)
+                            requester.bringIntoView()
+                        }
+                    }
+                }
+        )
     }
 }

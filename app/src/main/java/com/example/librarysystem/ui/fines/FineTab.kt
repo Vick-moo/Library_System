@@ -62,106 +62,118 @@ fun FineTab(
     // The ViewModel outlives the tab (activity scope), so start clean on entry.
     LaunchedEffect(Unit) { vm.startFresh() }
 
-    Column(Modifier.fillMaxSize()) {
-        SummaryBar(vm.fines, vm.filter)
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    // The whole tab scrolls: on a landscape phone the fixed header used to eat
+    // every pixel of the list.
+    PullToRefreshBox(
+        isRefreshing = vm.refreshing,
+        onRefresh = vm::refresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            FilterChip(
-                selected = vm.filter == "unpaid",
-                onClick = { vm.chooseFilter("unpaid") },
-                label = { Text("Unpaid") }
-            )
-            FilterChip(
-                selected = vm.filter == "paid",
-                onClick = { vm.chooseFilter("paid") },
-                label = { Text("Paid") }
-            )
-            FilterChip(
-                selected = vm.filter == "waived",
-                onClick = { vm.chooseFilter("waived") },
-                label = { Text("Waived") }
-            )
-        }
+            item { SummaryBar(vm.fines, vm.filter) }
 
-        OutlinedTextField(
-            value = vm.query,
-            onValueChange = vm::onQueryChange,
-            label = { Text("Search fines") },
-            placeholder = { Text("student no / name / book") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-        )
-
-        if (!vm.canSettle) {
-            Text(
-                "Only admin or librarian staff can settle fines.",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
-        vm.notice?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-        vm.error?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
-        PullToRefreshBox(
-            isRefreshing = vm.refreshing,
-            onRefresh = vm::refresh,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            when {
-                vm.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            item {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = vm.filter == "unpaid",
+                        onClick = { vm.chooseFilter("unpaid") },
+                        label = { Text("Unpaid") }
+                    )
+                    FilterChip(
+                        selected = vm.filter == "paid",
+                        onClick = { vm.chooseFilter("paid") },
+                        label = { Text("Paid") }
+                    )
+                    FilterChip(
+                        selected = vm.filter == "waived",
+                        onClick = { vm.chooseFilter("waived") },
+                        label = { Text("Waived") }
+                    )
                 }
+            }
 
-                vm.fines.isEmpty() -> LazyColumn(Modifier.fillMaxSize()) {
-                    item {
-                        Box(
-                            Modifier.fillParentMaxSize().padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                when (vm.filter) {
-                                    "unpaid" -> "No unpaid fines. Everything is settled."
-                                    "paid" -> "No paid fines yet."
-                                    else -> "No waived fines yet."
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+            item {
+                OutlinedTextField(
+                    value = vm.query,
+                    onValueChange = vm::onQueryChange,
+                    label = { Text("Search fines") },
+                    placeholder = { Text("student no / name / book") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
+            if (!vm.canSettle) {
+                item {
+                    Text(
+                        "Only admin or librarian staff can settle fines.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            vm.notice?.let { message ->
+                item {
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            vm.error?.let { message ->
+                item {
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            when {
+                vm.loading -> item {
+                    Box(
+                        Modifier.fillMaxWidth().height(140.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
 
-                else -> LazyColumn(
-                    Modifier.fillMaxSize().imePadding(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(vm.fines, key = { it.id }) { fine ->
+                vm.fines.isEmpty() -> item {
+                    Box(
+                        Modifier.fillMaxWidth().height(140.dp).padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            when (vm.filter) {
+                                "unpaid" -> "No unpaid fines. Everything is settled."
+                                "paid" -> "No paid fines yet."
+                                else -> "No waived fines yet."
+                            },
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                else -> items(vm.fines, key = { it.id }) { fine ->
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                         FineCard(
                             fine = fine,
                             canSettle = vm.canSettle && fine.isUnpaid && !vm.busy,

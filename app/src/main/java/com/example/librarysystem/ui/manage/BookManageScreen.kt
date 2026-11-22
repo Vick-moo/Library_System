@@ -166,7 +166,7 @@ private fun BookHeader(book: Book) {
         Box(
             modifier = Modifier
                 .width(84.dp)
-                .height(112.dp)
+                .height(126.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center

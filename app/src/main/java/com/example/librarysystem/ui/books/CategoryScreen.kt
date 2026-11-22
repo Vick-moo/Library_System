@@ -111,7 +111,7 @@ private fun CategoryBookRow(
         Box(
             modifier = Modifier
                 .width(48.dp)
-                .height(64.dp)
+                .height(72.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
