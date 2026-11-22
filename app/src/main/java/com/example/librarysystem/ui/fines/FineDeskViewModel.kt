@@ -9,6 +9,7 @@ import com.example.librarysystem.data.AuthRepository
 import com.example.librarysystem.data.BorrowRepository
 import com.example.librarysystem.data.model.FineRow
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class FineDeskViewModel : ViewModel() {
 
@@ -23,6 +24,8 @@ class FineDeskViewModel : ViewModel() {
         private set
     var busy by mutableStateOf(false)
         private set
+    var refreshing by mutableStateOf(false)
+        private set
     var error by mutableStateOf<String?>(null)
         private set
     var notice by mutableStateOf<String?>(null)
@@ -30,6 +33,10 @@ class FineDeskViewModel : ViewModel() {
 
     /** Only admin + librarian are allowed to settle money. */
     var canSettle by mutableStateOf(false)
+        private set
+
+    /** Fine waiting for the amount-entry confirmation. */
+    var pendingPay by mutableStateOf<FineRow?>(null)
         private set
 
     /** Fine waiting for a "waive" confirmation. */
@@ -52,15 +59,15 @@ class FineDeskViewModel : ViewModel() {
         load()
     }
 
+    fun onQueryChange(value: String) {
+        query = value
+        load()
+    }
+
     /** The desk always opens on what still needs money. */
     fun startFresh() {
         filter = "unpaid"
         query = ""
-        load()
-    }
-
-    fun onQueryChange(value: String) {
-        query = value
         load()
     }
 
@@ -81,26 +88,48 @@ class FineDeskViewModel : ViewModel() {
 
     /** Pull-to-refresh keeps the list on screen while reloading. */
     fun refresh() {
+        if (refreshing) return
         viewModelScope.launch {
+            refreshing = true
             try {
                 fines = BorrowRepository.fines(filter, query)
                 error = null
             } catch (_: Exception) {
                 error = "Could not refresh. Check the connection."
+            } finally {
+                refreshing = false
             }
         }
     }
 
-    fun markPaid(fine: FineRow, onSettled: (FineRow) -> Unit) {
+    // ------------------------------------------------------------------ pay
+
+    fun askPay(fine: FineRow) {
+        pendingPay = fine
+    }
+
+    fun dismissPay() {
+        pendingPay = null
+    }
+
+    /**
+     * Money is involved, so the staff must retype the amount. A mismatch blocks
+     * the action instead of silently marking the wrong fine paid.
+     */
+    fun confirmPay(entered: String, onCleared: (FineRow) -> Unit) {
+        val fine = pendingPay ?: return
+        val amount = entered.trim().toDoubleOrNull() ?: return
+        if (abs(amount - fine.amount) > 0.005) return
+        pendingPay = null
         if (busy) return
         busy = true
         error = null
-        notice = null
         viewModelScope.launch {
             try {
                 val result = BorrowRepository.markFine(fine.id, "paid")
                 if (result.ok) {
-                    onSettled(fine)
+                    onCleared(fine)
+                    load()
                 } else {
                     error = when (result.message) {
                         "NOT_ALLOWED" -> "Only admin or librarian can settle fines."
@@ -115,6 +144,8 @@ class FineDeskViewModel : ViewModel() {
             }
         }
     }
+
+    // ---------------------------------------------------------------- waive
 
     fun askWaive(fine: FineRow) {
         pendingWaive = fine
@@ -134,18 +165,15 @@ class FineDeskViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = BorrowRepository.markFine(fine.id, "waived")
-                notice = if (result.ok) {
-                    "Fine for ${fine.studentName.ifBlank { fine.studentNo }} waived."
+                if (result.ok) {
+                    notice = "Fine for ${fine.studentName.ifBlank { fine.studentNo }} waived."
+                    load()
                 } else {
-                    null
-                }
-                if (!result.ok) {
                     error = when (result.message) {
                         "NOT_ALLOWED" -> "Only admin or librarian can waive fines."
                         else -> "Could not waive this fine. Try again."
                     }
                 }
-                load()
             } catch (e: Exception) {
                 error = friendly(e)
             } finally {

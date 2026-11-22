@@ -12,14 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -28,9 +27,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -38,10 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,33 +49,40 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.model.ActiveLoan
 import com.example.librarysystem.data.model.AvailableCopy
+import com.example.librarysystem.data.model.DamageCopy
+import com.example.librarysystem.data.model.FineRow
 import com.example.librarysystem.ui.components.LabeledField
 import com.example.librarysystem.ui.components.LibraryTopAppBar
+import com.example.librarysystem.ui.damage.DamageTab
+import com.example.librarysystem.ui.fines.FineTab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BorrowDeskScreen(
-    onOpenFines: () -> Unit,
+    onOpenDamageForm: (DamageCopy) -> Unit,
     flashNotice: String? = null,
     onFlashConsumed: () -> Unit = {},
     vm: BorrowDeskViewModel = viewModel()
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(vm.snackbar) {
+        vm.snackbar?.let { message ->
+            snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+            vm.consumeSnackbar()
+        }
+    }
+
     LaunchedEffect(flashNotice) {
         if (!flashNotice.isNullOrBlank()) {
-            vm.onReturnedFromFines(flashNotice)
+            vm.showMessage(flashNotice)
             onFlashConsumed()
         }
     }
 
     Scaffold(
-        topBar = {
-            LibraryTopAppBar(
-                title = "Borrow desk",
-                actions = {
-                    TextButton(onClick = onOpenFines) { Text("Fines") }
-                }
-            )
-        },
+        topBar = { LibraryTopAppBar(title = "Borrow desk") },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -92,27 +97,30 @@ fun BorrowDeskScreen(
                     onClick = { vm.selectTab(1) },
                     text = { Text("Return") }
                 )
-            }
-
-            vm.notice?.let {
-                NoticeBanner(
-                    text = it,
-                    color = MaterialTheme.colorScheme.primary
+                Tab(
+                    selected = vm.tab == 2,
+                    onClick = { vm.selectTab(2) },
+                    text = { Text("Fines") }
                 )
-            }
-            vm.error?.let {
-                NoticeBanner(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error
+                Tab(
+                    selected = vm.tab == 3,
+                    onClick = { vm.selectTab(3) },
+                    text = { Text("Damage") }
                 )
             }
 
-            PullToRefreshBox(
-                isRefreshing = vm.refreshing,
-                onRefresh = vm::refresh,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                if (vm.tab == 0) BorrowTab(vm) else ReturnTab(vm)
+            when (vm.tab) {
+                0 -> BorrowTab(vm)
+                1 -> ReturnTab(vm)
+                2 -> FineTab(
+                    onCleared = { fine ->
+                        vm.onFineCleared(
+                            "Fine RM %.2f cleared for %s. Switch to Return to finish the return."
+                                .format(fine.amount, fine.studentName.ifBlank { fine.studentNo })
+                        )
+                    }
+                )
+                else -> DamageTab(onOpenForm = onOpenDamageForm)
             }
         }
     }
@@ -128,149 +136,169 @@ fun BorrowDeskScreen(
     vm.fineGate?.let { gate ->
         FineGateDialog(
             gate = gate,
-            onGoFines = {
-                vm.dismissFineGate()
-                onOpenFines()
-            },
+            onGoFines = vm::goToFines,
             onDismiss = vm::dismissFineGate
         )
     }
-
-    vm.damageTarget?.let { loan ->
-        DamageDialog(
-            loan = loan,
-            onConfirm = vm::reportDamage,
-            onDismiss = vm::dismissDamage
-        )
-    }
-}
-
-@Composable
-private fun NoticeBanner(text: String, color: androidx.compose.ui.graphics.Color) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = color,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
 }
 
 // -------------------------------------------------------------------- borrow
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BorrowTab(vm: BorrowDeskViewModel) {
-    val scroll = rememberScrollState()
-    // Errors render above the list; snap back so a failed action is visible.
-    LaunchedEffect(vm.error) {
-        if (!vm.error.isNullOrBlank()) scroll.animateScrollTo(0)
-    }
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(scroll)
-            .imePadding()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            LabeledField(
-                label = "Student number",
-                value = vm.studentNoInput,
-                onValueChange = vm::onStudentNoChange,
-                placeholder = "e.g. 23WMR00001",
-                maxLength = 20,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = vm::searchStudent,
-                enabled = !vm.studentSearching,
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                Text(if (vm.studentSearching) "…" else "Search")
-            }
-        }
+    val listState = rememberLazyListState()
 
-        vm.studentCard?.let { card ->
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(
-                        card.fullName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        card.studentNo,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    StudentStatRow("On loan", "${card.activeLoans} / 2")
-                    StudentStatRow("Reserved", "${card.reservedCount} / 2")
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        if (card.unpaidFines > 0) {
-                            "Unpaid fines: RM %.2f".format(card.unpaidFines)
-                        } else {
-                            "No unpaid fines"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (card.unpaidFines > 0) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (card.atLimit) {
-                        Text(
-                            "Loan + reservation limit reached (2). No further borrowing.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
+    Column(Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = vm.refreshing,
+            onRefresh = vm::refresh,
+            modifier = Modifier.weight(1f)
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().imePadding(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp
+                )
+            ) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            LabeledField(
+                                label = "Student number",
+                                value = vm.studentNoInput,
+                                onValueChange = vm::onStudentNoChange,
+                                placeholder = "e.g. 23WMR00001",
+                                maxLength = 20,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Button(
+                                onClick = vm::searchStudent,
+                                enabled = !vm.studentSearching,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            ) {
+                                Text(if (vm.studentSearching) "…" else "Search")
+                            }
+                        }
+
+                        vm.studentCard?.let { card ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(
+                                        card.fullName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        card.studentNo,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    StudentStatRow("On loan", "${card.activeLoans} / 2")
+                                    StudentStatRow("Reserved", "${card.reservedCount} / 2")
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        if (card.unpaidFines > 0) {
+                                            "Unpaid fines: RM %.2f".format(card.unpaidFines)
+                                        } else {
+                                            "No unpaid fines"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (card.unpaidFines > 0)
+                                            MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (card.atLimit) {
+                                        Text(
+                                            "Loan + reservation limit reached (2). " +
+                                                "No further borrowing.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        LabeledField(
+                            label = "Copy number or ISBN",
+                            value = vm.copyQuery,
+                            onValueChange = vm::onCopyQueryChange,
+                            placeholder = "e.g. C1 or 9781234567890",
+                            maxLength = 100
                         )
+
+                        if (vm.copyQuery.isBlank()) {
+                            Text(
+                                "Type or scan a copy number / ISBN to find a copy. " +
+                                    "The full catalogue lives under Manage.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else if (vm.copiesLoading) {
+                            Box(
+                                Modifier.fillMaxWidth().height(64.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        } else if (vm.copies.isEmpty()) {
+                            Text(
+                                "No available copy matches.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-            }
-        }
 
-        LabeledField(
-            label = "Find an available copy",
-            value = vm.copyQuery,
-            onValueChange = vm::onCopyQueryChange,
-            placeholder = "copy no / title / ISBN",
-            maxLength = 100
-        )
-
-        if (vm.copiesLoading) {
-            Box(
-                Modifier.fillMaxWidth().height(80.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (vm.copies.isEmpty()) {
-            Text(
-                "No available copies match.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                vm.copies.forEach { copy ->
+                items(vm.copies, key = { it.copyId }) { copy ->
+                    Spacer(Modifier.height(6.dp))
                     CopyOption(
                         copy = copy,
                         selected = vm.selectedCopy?.copyId == copy.copyId,
                         onClick = { vm.selectCopy(copy) }
                     )
                 }
+
+                item { Spacer(Modifier.height(8.dp)) }
             }
         }
 
-        Button(
-            onClick = vm::confirmBorrow,
-            enabled = !vm.busy && vm.selectedCopy != null && vm.studentCard != null,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (vm.busy) "Borrowing…" else "Borrow selected copy")
+        BorrowActionBar(vm)
+    }
+}
+
+@Composable
+private fun BorrowActionBar(vm: BorrowDeskViewModel) {
+    Surface(
+        tonalElevation = 3.dp,
+        shadowElevation = 8.dp
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
+            val selected = vm.selectedCopy
+            if (selected != null) {
+                Text(
+                    "${selected.bookTitle} · ${selected.copyNo}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            Button(
+                onClick = vm::confirmBorrow,
+                enabled = !vm.busy && selected != null && vm.studentCard != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (vm.busy) "Borrowing…" else "Borrow selected copy")
+            }
         }
-        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -332,69 +360,74 @@ private fun CopyOption(copy: AvailableCopy, selected: Boolean, onClick: () -> Un
 
 // -------------------------------------------------------------------- return
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReturnTab(vm: BorrowDeskViewModel) {
-    val visible = vm.visibleLoans  // computed once per recomposition
+    val visible = vm.visibleLoans
     val listState = rememberLazyListState()
-    LaunchedEffect(vm.error) {
-        if (!vm.error.isNullOrBlank()) listState.animateScrollToItem(0)
-    }
 
-    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().imePadding()) {
-        item {
-            Column(Modifier.padding(16.dp)) {
-                LabeledField(
-                    label = "Search by student number",
-                    value = vm.loanQuery,
-                    onValueChange = vm::onLoanQueryChange,
-                    placeholder = "e.g. 23WMR00002",
-                    maxLength = 20
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (visible.size == 1) "1 book on loan" else "${visible.size} books on loan",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        if (vm.loansLoading) {
+    PullToRefreshBox(
+        isRefreshing = vm.refreshing,
+        onRefresh = vm::refresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().imePadding()) {
             item {
-                Box(
-                    Modifier.fillMaxWidth().height(160.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-        } else if (visible.isEmpty()) {
-            item {
-                Box(
-                    Modifier.fillMaxWidth().height(160.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                Column(Modifier.padding(16.dp)) {
+                    LabeledField(
+                        label = "Search by student number",
+                        value = vm.loanQuery,
+                        onValueChange = vm::onLoanQueryChange,
+                        placeholder = "e.g. 23WMR00002",
+                        maxLength = 20
+                    )
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        if (vm.loanQuery.isBlank()) "No books are on loan right now."
-                        else "No loans for that student number.",
+                        if (visible.size == 1) "1 book on loan"
+                        else "${visible.size} books on loan",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        } else {
-            items(visible, key = { it.borrowId }) { loan ->
-                LoanRow(
-                    loan = loan,
-                    busy = vm.busy,
-                    onReturn = { vm.onReturnClick(loan) },
-                    onDamage = { vm.openDamage(loan) }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 16.dp),
-                    thickness = 1.dp
-                )
+
+            if (vm.loansLoading) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().height(160.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            } else if (visible.isEmpty()) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().height(160.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (vm.loanQuery.isBlank()) "No books are on loan right now."
+                            else "No loans for that student number.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                items(visible, key = { it.borrowId }) { loan ->
+                    LoanRow(
+                        loan = loan,
+                        busy = vm.busy,
+                        onReturn = { vm.onReturnClick(loan) },
+                        onDamage = { vm.selectTab(3) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp),
+                        thickness = 1.dp
+                    )
+                }
+                item { Spacer(Modifier.height(24.dp)) }
             }
-            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
@@ -534,101 +567,4 @@ private fun FineGateDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
-}
-
-@Composable
-private fun DamageDialog(
-    loan: ActiveLoan,
-    onConfirm: (category: String, description: String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var category by remember { mutableStateOf("minor") }
-    var description by remember { mutableStateOf("") }
-
-    val fraction = if (category == "minor") 0.5 else 1.0
-    val estimate = loan.bookPrice * fraction
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Report damage") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(
-                    "\"${loan.bookTitle}\" · copy ${loan.copyNo}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-
-                DamageChoice(
-                    label = "Minor damage",
-                    hint = "50%% of book price · RM %.2f".format(loan.bookPrice * 0.5),
-                    selected = category == "minor",
-                    onClick = { category = "minor" }
-                )
-                DamageChoice(
-                    label = "Major damage",
-                    hint = "100%% of book price · RM %.2f".format(loan.bookPrice),
-                    selected = category == "major",
-                    onClick = { category = "major" }
-                )
-                DamageChoice(
-                    label = "Lost",
-                    hint = "100% of book price · loan closed as lost",
-                    selected = category == "lost",
-                    onClick = { category = "lost" }
-                )
-
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { if (it.length <= 300) description = it },
-                    label = { Text("Description (optional)") },
-                    placeholder = { Text("e.g. water damage on pages 10-40") },
-                    minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Charges RM %.2f and takes this copy out of circulation.".format(estimate),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(category, description) }) { Text("Record") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@Composable
-private fun DamageChoice(
-    label: String,
-    hint: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                hint,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }

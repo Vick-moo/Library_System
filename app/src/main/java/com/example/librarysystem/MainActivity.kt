@@ -33,7 +33,7 @@ import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
 import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.borrow.BorrowDeskScreen
-import com.example.librarysystem.ui.fines.FineDeskScreen
+import com.example.librarysystem.ui.damage.DamageFormScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
@@ -62,6 +62,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var selectedBookId by remember { mutableStateOf<String?>(null) }
     var selectedCopyId by remember { mutableStateOf<String?>(null) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    /** Copy being reported as damaged on the standalone damage form. */
+    var selectedDamageCopy by remember { mutableStateOf<com.example.librarysystem.data.model.DamageCopy?>(null) }
     /** Bumped on every form entry so a fresh ViewModel is created (no stale draft). */
     var formSeq by remember { mutableStateOf(0) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
@@ -104,7 +106,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
-        "manage-copy-edit", "manage-book", "category", "fines"
+        "manage-copy-edit", "manage-book", "category", "damage-form"
     )
     Scaffold(
         bottomBar = {
@@ -200,21 +202,23 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     )
                 }
                 "borrow-desk" -> BorrowDeskScreen(
-                    onOpenFines = { go("fines") },
+                    onOpenDamageForm = { copy ->
+                        selectedDamageCopy = copy
+                        go("damage-form")
+                    },
                     flashNotice = staffNotice,
                     onFlashConsumed = { staffNotice = null }
                 )
-                "fines" -> FineDeskScreen(
-                    onBack = ::back,
-                    onPaid = { fine ->
-                        staffNotice = "Fine RM %.2f for %s marked paid — you can return the book now."
-                            .format(
-                                fine.amount,
-                                fine.studentName.ifBlank { fine.studentNo }
-                            )
-                        back()
-                    }
-                )
+                "damage-form" -> selectedDamageCopy?.let { copy ->
+                    DamageFormScreen(
+                        copy = copy,
+                        onBack = ::back,
+                        onSaved = { message ->
+                            staffNotice = message
+                            back()
+                        }
+                    )
+                }
                 "manage" -> ManageScreen(
                     onAddBook = {
                         formSeq++

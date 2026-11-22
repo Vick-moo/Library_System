@@ -3,6 +3,7 @@ package com.example.librarysystem.data
 import com.example.librarysystem.data.model.ActionResult
 import com.example.librarysystem.data.model.ActiveLoan
 import com.example.librarysystem.data.model.AvailableCopy
+import com.example.librarysystem.data.model.DamageCopy
 import com.example.librarysystem.data.model.FineRow
 import com.example.librarysystem.data.model.ReturnResult
 import com.example.librarysystem.data.model.SettleResult
@@ -37,8 +38,9 @@ private data class FineIdParam(
 
 @Serializable
 private data class DamageParam(
-    @SerialName("p_borrow_id") val borrowId: String,
+    @SerialName("p_copy_id") val copyId: String,
     @SerialName("p_category") val category: String,
+    @SerialName("p_percent") val percent: Int,
     @SerialName("p_description") val description: String?
 )
 
@@ -118,16 +120,27 @@ object BorrowRepository {
             .decodeList<ReturnResult>()
             .firstOrNull() ?: ReturnResult(false, "UNKNOWN")
 
-    /** Records damage/loss, charges the matching fine and takes the copy out of circulation. */
+    /** Records damage/loss on any copy, charges the matching fine and takes it out of circulation. */
     suspend fun reportDamage(
-        borrowId: String,
+        copyId: String,
         category: String,
+        percent: Int,
         description: String?
     ): ActionResult =
         supabase.postgrest.rpc(
             "staff_report_damage",
-            DamageParam(borrowId, category, description?.trim()?.ifBlank { null })
+            DamageParam(copyId, category, percent, description?.trim()?.ifBlank { null })
         ).decodeList<ActionResult>().firstOrNull() ?: ActionResult(false, "UNKNOWN")
+
+    /** Copies the damage desk can inspect — borrowed or on the shelf. */
+    suspend fun damageCopies(query: String? = null): List<DamageCopy> {
+        val res = if (query.isNullOrBlank()) {
+            supabase.postgrest.rpc("staff_damage_copies")
+        } else {
+            supabase.postgrest.rpc("staff_damage_copies", QueryParam(query.trim()))
+        }
+        return res.decodeList<DamageCopy>()
+    }
 
     suspend fun fines(status: String, query: String? = null): List<FineRow> =
         supabase.postgrest.rpc(

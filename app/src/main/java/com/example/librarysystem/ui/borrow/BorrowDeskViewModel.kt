@@ -21,6 +21,7 @@ data class FineGate(
 
 class BorrowDeskViewModel : ViewModel() {
 
+    /** 0 Borrow · 1 Return · 2 Fines · 3 Damage */
     var tab by mutableStateOf(0)
         private set
 
@@ -47,9 +48,8 @@ class BorrowDeskViewModel : ViewModel() {
     var loansLoading by mutableStateOf(false)
         private set
 
-    var notice by mutableStateOf<String?>(null)
-        private set
-    var error by mutableStateOf<String?>(null)
+    /** Bottom snackbar; cleared once shown. */
+    var snackbar by mutableStateOf<String?>(null)
         private set
     var busy by mutableStateOf(false)
         private set
@@ -62,10 +62,6 @@ class BorrowDeskViewModel : ViewModel() {
 
     /** Pending "pay the fine first" gate. */
     var fineGate by mutableStateOf<FineGate?>(null)
-        private set
-
-    /** Loan the staff is filing a damage report for. */
-    var damageTarget by mutableStateOf<ActiveLoan?>(null)
         private set
 
     private var staffNo: String? = null
@@ -82,31 +78,35 @@ class BorrowDeskViewModel : ViewModel() {
             staffNo = try { AuthRepository.myStaffNo() } catch (_: Exception) { null }
         }
         loadLoans()
-        searchCopies()
     }
 
     fun selectTab(index: Int) {
         if (tab == index) return
         tab = index
-        notice = null
-        error = null
-        if (index == 1) loadLoans()
+        when (index) {
+            1 -> loadLoans()
+            0 -> if (studentNoInput.isNotBlank()) searchStudent()
+        }
     }
 
     fun onStudentNoChange(value: String) {
         studentNoInput = value
         studentCard = null
-        error = null
     }
 
     fun onCopyQueryChange(value: String) {
         copyQuery = value
-        searchCopies()
+        selectedCopy = null
+        if (value.isBlank()) {
+            copies = emptyList()
+            copiesLoading = false
+        } else {
+            searchCopies()
+        }
     }
 
     fun onLoanQueryChange(value: String) {
         loanQuery = value
-        error = null
     }
 
     // ---------------------------------------------------------------- borrow
@@ -114,22 +114,21 @@ class BorrowDeskViewModel : ViewModel() {
     fun searchStudent() {
         val no = studentNoInput.trim()
         if (no.isBlank()) {
-            error = "Enter a student number."
+            snackbar = "Enter a student number."
             return
         }
         studentSearching = true
-        error = null
         studentCard = null
         viewModelScope.launch {
             try {
                 val card = BorrowRepository.studentCard(no)
                 if (card == null) {
-                    error = "No student found with that number."
+                    snackbar = "No student found with that number."
                 } else {
                     studentCard = card
                 }
-            } catch (e: Exception) {
-                error = "Could not look up the student. Try again."
+            } catch (_: Exception) {
+                snackbar = "Could not look up the student. Try again."
             } finally {
                 studentSearching = false
             }
@@ -140,7 +139,7 @@ class BorrowDeskViewModel : ViewModel() {
         viewModelScope.launch {
             copiesLoading = true
             try {
-                copies = BorrowRepository.searchAvailableCopies(copyQuery)
+                copies = BorrowRepository.searchAvailableCopies(copyQuery).take(10)
             } catch (_: Exception) {
                 copies = emptyList()
             } finally {
@@ -151,49 +150,48 @@ class BorrowDeskViewModel : ViewModel() {
 
     fun selectCopy(copy: AvailableCopy) {
         selectedCopy = if (selectedCopy?.copyId == copy.copyId) null else copy
-        error = null
     }
 
     fun confirmBorrow() {
         val card = studentCard ?: run {
-            error = "Search a student first."
+            snackbar = "Search a student first."
             return
         }
         val copy = selectedCopy ?: run {
-            error = "Pick a copy to borrow."
+            snackbar = "Pick a copy to borrow."
             return
         }
         val staff = staffNo ?: run {
-            error = "Staff account not recognised. Re-login."
+            snackbar = "Staff account not recognised. Re-login."
             return
         }
         if (card.unpaidFines > 0) {
-            error = "Student has RM %.2f unpaid fines. Settle them in Fines first."
+            snackbar = "Student has RM %.2f unpaid fines. Settle them in Fines first."
                 .format(card.unpaidFines)
             return
         }
         if (card.activeLoans >= 2) {
-            error = "Student already has ${card.activeLoans} books on loan (max 2)."
+            snackbar = "Student already has ${card.activeLoans} books on loan (max 2)."
             return
         }
         if (card.totalHeld >= 2) {
-            error = "Student has ${card.activeLoans} on loan + ${card.reservedCount} reserved " +
-                "(limit 2). Cannot borrow another."
+            snackbar = "Student has ${card.activeLoans} on loan + ${card.reservedCount} " +
+                "reserved (limit 2). Cannot borrow another."
             return
         }
 
         busy = true
-        error = null
-        notice = null
         viewModelScope.launch {
             try {
                 val due = BorrowRepository.borrowBook(card.studentNo, copy.copyId, staff)
-                notice = "Borrowed \"${copy.bookTitle}\". Due $due."
+                snackbar = "Borrowed \"${copy.bookTitle}\". Due $due."
                 selectedCopy = null
+                copyQuery = ""
+                copies = emptyList()
                 searchCopies()
                 searchStudent()
             } catch (e: Exception) {
-                error = friendly(e, "Could not borrow this copy. Try again.")
+                snackbar = friendly(e, "Could not borrow this copy. Try again.")
             } finally {
                 busy = false
             }
@@ -217,13 +215,12 @@ class BorrowDeskViewModel : ViewModel() {
 
     /**
      * Step 1 of the return flow. An overdue loan gets its fine settled (amount
-     * locked for today) and the staff is sent to the fine desk instead of
-     * returning straight away. A clean loan asks for the usual confirmation.
+     * locked for today) and the staff is sent to the fine tab instead of
+     * returning straight away.
      */
     fun onReturnClick(loan: ActiveLoan) {
         if (busy) return
-        error = null
-        notice = null
+        snackbar = null
 
         if (loan.hasUnpaidFine) {
             fineGate = FineGate(loan, loan.unpaidFine, loan.overdueDays)
@@ -242,20 +239,16 @@ class BorrowDeskViewModel : ViewModel() {
                 if (settled.amount > 0 && !settled.alreadySettled) {
                     fineGate = FineGate(loan, settled.amount, settled.overdueDays)
                 } else {
-                    // No money owed (or already settled) — plain confirmation.
                     confirmReturnLoan = loan
                 }
                 loadLoans()
             } catch (e: Exception) {
-                error = friendly(e, "Could not check the overdue fine. Try again.")
+                snackbar = friendly(e, "Could not check the overdue fine. Try again.")
             } finally {
                 busy = false
             }
         }
     }
-
-    fun hasUnpaidFineOn(loan: ActiveLoan): Boolean =
-        loans.firstOrNull { it.borrowId == loan.borrowId }?.hasUnpaidFine ?: loan.hasUnpaidFine
 
     fun dismissReturnConfirm() {
         confirmReturnLoan = null
@@ -265,20 +258,24 @@ class BorrowDeskViewModel : ViewModel() {
         fineGate = null
     }
 
-    /** Step 2: the staff confirmed the dialog; the server re-checks the fine. */
+    /** Jump from the fine gate straight to the Fines tab. */
+    fun goToFines() {
+        fineGate = null
+        tab = 2
+    }
+
+    /** Step 2: the staff confirmed; the server re-checks the fine before returning. */
     fun confirmReturn() {
         val loan = confirmReturnLoan ?: return
         confirmReturnLoan = null
         if (busy) return
         busy = true
-        error = null
-        notice = null
         viewModelScope.launch {
             try {
                 val result = BorrowRepository.returnLoan(loan.borrowId)
                 when {
                     result.ok -> {
-                        notice = if (result.overdueDays > 0) {
+                        snackbar = if (result.overdueDays > 0) {
                             "Returned \"${loan.bookTitle}\". ${result.overdueDays} day(s) late."
                         } else {
                             "Returned \"${loan.bookTitle}\"."
@@ -294,61 +291,14 @@ class BorrowDeskViewModel : ViewModel() {
                         )
                     }
 
-                    result.reason == "ALREADY_RETURNED" -> {
-                        notice = "This book was already returned."
-                    }
+                    result.reason == "ALREADY_RETURNED" ->
+                        snackbar = "This book was already returned."
 
-                    else -> error = "Could not return this book. Try again."
+                    else -> snackbar = "Could not return this book. Try again."
                 }
                 loadLoans()
             } catch (e: Exception) {
-                error = friendly(e, "Could not return this book. Try again.")
-            } finally {
-                busy = false
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------- damage
-
-    fun openDamage(loan: ActiveLoan) {
-        error = null
-        damageTarget = loan
-    }
-
-    fun dismissDamage() {
-        damageTarget = null
-    }
-
-    fun reportDamage(category: String, description: String) {
-        val loan = damageTarget ?: return
-        damageTarget = null
-        if (busy) return
-        busy = true
-        error = null
-        notice = null
-        viewModelScope.launch {
-            try {
-                val result = BorrowRepository.reportDamage(loan.borrowId, category, description)
-                if (result.ok) {
-                    val label = when (category) {
-                        "minor" -> "Minor damage"
-                        "major" -> "Major damage"
-                        else -> "Lost book"
-                    }
-                    notice = "$label recorded for \"${loan.bookTitle}\". " +
-                        "Fine RM %.2f added.".format(result.fineAmount ?: 0.0)
-                    loadLoans()
-                } else {
-                    error = when (result.message) {
-                        "NOT_ALLOWED" -> "Only admin or librarian can record damage."
-                        "BAD_CATEGORY" -> "Choose a damage level."
-                        "LOAN_NOT_FOUND" -> "This loan no longer exists."
-                        else -> "Could not save the damage report. Try again."
-                    }
-                }
-            } catch (e: Exception) {
-                error = friendly(e, "Could not save the damage report. Try again.")
+                snackbar = friendly(e, "Could not return this book. Try again.")
             } finally {
                 busy = false
             }
@@ -363,36 +313,39 @@ class BorrowDeskViewModel : ViewModel() {
         viewModelScope.launch {
             refreshing = true
             try {
-                if (tab == 1) {
-                    loans = BorrowRepository.activeLoans()
-                } else {
-                    copies = BorrowRepository.searchAvailableCopies(copyQuery)
-                    val no = studentNoInput.trim()
-                    if (no.isNotBlank()) {
-                        studentCard = BorrowRepository.studentCard(no)
+                when (tab) {
+                    1 -> loans = BorrowRepository.activeLoans()
+                    0 -> {
+                        if (copyQuery.isNotBlank()) {
+                            copies = BorrowRepository.searchAvailableCopies(copyQuery).take(10)
+                        }
+                        val no = studentNoInput.trim()
+                        if (no.isNotBlank()) {
+                            studentCard = BorrowRepository.studentCard(no)
+                        }
                     }
                 }
-                error = null
             } catch (_: Exception) {
-                error = "Could not refresh. Check the connection."
+                snackbar = "Could not refresh. Check the connection."
             } finally {
                 refreshing = false
             }
         }
     }
 
-    /** Called when coming back from the fine desk. */
-    fun onReturnedFromFines(message: String?) {
-        if (!message.isNullOrBlank()) notice = message
-        error = null
-        tab = 1
+    /** Called after the fine desk clears a payment. */
+    fun onFineCleared(message: String) {
+        snackbar = message
         loadLoans()
         if (studentNoInput.isNotBlank()) searchStudent()
     }
 
-    fun clearTransient() {
-        notice = null
-        error = null
+    fun showMessage(message: String) {
+        snackbar = message
+    }
+
+    fun consumeSnackbar() {
+        snackbar = null
     }
 
     private fun friendly(e: Exception, fallback: String): String {

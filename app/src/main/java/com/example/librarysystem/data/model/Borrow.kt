@@ -88,5 +88,23 @@ data class ReturnResult(
 data class ActionResult(
     val ok: Boolean,
     val message: String = "",
-    @SerialName("fine_amount") val fineAmount: Double? = null
+    @SerialName("fine_amount") val fineAmount: Double? = null,
+    @SerialName("report_id") val reportId: String? = null
 )
+
+@Serializable
+data class DamageCopy(
+    @SerialName("copy_id") val copyId: String,
+    @SerialName("copy_no") val copyNo: String,
+    @SerialName("book_title") val bookTitle: String,
+    @SerialName("book_author") val bookAuthor: String,
+    @SerialName("book_price") val bookPrice: Double = 0.0,
+    @SerialName("copy_status") val copyStatus: String,
+    @SerialName("shelf_location") val shelf: String? = null,
+    @SerialName("borrower_name") val borrowerName: String? = null,
+    @SerialName("borrower_no") val borrowerNo: String? = null,
+    @SerialName("borrow_id") val borrowId: String? = null
+) {
+    val isOnLoan: Boolean get() = copyStatus == "borrowed"
+    val isOutOfCirculation: Boolean get() = copyStatus == "unavailable"
+}
