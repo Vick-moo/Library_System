@@ -131,16 +131,6 @@ fun SearchTopBar(
             maxLines = 1,
             modifier = Modifier.weight(1f).height(56.dp)
         )
-        IconButton(onClick = {}) {
-            Box(contentAlignment = Alignment.TopEnd) {
-                Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
-                Box(
-                    Modifier.size(8.dp).clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.error)
-                        .align(Alignment.TopEnd)
-                )
-            }
-        }
     }
 }
 
@@ -376,8 +366,12 @@ fun CategoryRow(
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold)
-            Text("See all >", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "See all >",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clickable { onSeeAll() }
+            )
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),

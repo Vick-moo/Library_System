@@ -194,18 +194,25 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
     }
 
     private fun validate(): String? {
-        if (isbn.isBlank()) return "ISBN is required"
+        val isbnText = isbn.trim()
+        if (isbnText.isBlank()) return "ISBN is required"
+        if (isbnText.length !in 10..20) return "ISBN must be 10–20 characters"
         if (title.isBlank()) return "Title is required"
         if (author.isBlank()) return "Author is required"
         if (publisher.isBlank()) return "Publisher is required"
-        if (publishYear.toIntOrNull() == null) return "Publish year must be a number"
+        val year = publishYear.toIntOrNull()
+        if (year == null || year !in 1000..2100) return "Publish year must be between 1000 and 2100"
         if (category.isBlank()) return "Category is required"
         if (language.isBlank()) return "Language is required"
-        if (pages.toIntOrNull() == null) return "Pages must be a number"
-        if (price.toDoubleOrNull() == null) return "Price must be a number"
+        val pageCount = pages.toIntOrNull()
+        if (pageCount == null || pageCount !in 1..20000) return "Pages must be between 1 and 20000"
+        val priceValue = price.toDoubleOrNull()
+        if (priceValue == null || priceValue <= 0 || priceValue > 100000) {
+            return "Price must be between 0.01 and 100000"
+        }
         if (description.isBlank()) return "Description is required"
         if (bookId == null) {
-            if ((copyCount.toIntOrNull() ?: 0) <= 0) return "Copy count must be at least 1"
+            if ((copyCount.toIntOrNull() ?: 0) !in 1..50) return "Copy count must be between 1 and 50"
             if (shelfLocation.isBlank()) return "Shelf location is required for new copies"
         }
         return null

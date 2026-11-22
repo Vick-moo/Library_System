@@ -1,6 +1,7 @@
 package com.example.librarysystem.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,14 +30,25 @@ fun LabeledField(
     maxLength: Int = 200,
     keyboard: KeyboardType = KeyboardType.Text,
     readOnly: Boolean = false,
+    required: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxWidth()) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (required) {
+                Text(
+                    " *",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,

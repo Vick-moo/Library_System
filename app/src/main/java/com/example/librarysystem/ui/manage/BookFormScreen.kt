@@ -60,9 +60,12 @@ import com.example.librarysystem.ui.components.LibraryTopAppBar
 @Composable
 fun BookFormScreen(
     bookId: String?,
+    formKey: Int,
     onBack: () -> Unit,
     onSaved: () -> Unit,
-    vm: BookFormViewModel = viewModel(key = bookId ?: "new") { BookFormViewModel(bookId) }
+    vm: BookFormViewModel = viewModel(key = "bookform-${bookId ?: "new"}-$formKey") {
+        BookFormViewModel(bookId)
+    }
 ) {
     var showDiscard by rememberSaveable { mutableStateOf(false) }
     var showArchive by rememberSaveable { mutableStateOf(false) }
@@ -165,6 +168,7 @@ fun BookFormScreen(
                     value = vm.isbn,
                     onValueChange = { vm.update("isbn", it) },
                     placeholder = "e.g. 9780553380163",
+                    required = true,
                     maxLength = 20,
                     readOnly = vm.isEdit,
                     keyboard = KeyboardType.Number
@@ -176,6 +180,7 @@ fun BookFormScreen(
                     value = vm.title,
                     onValueChange = { vm.update("title", it) },
                     placeholder = "e.g. A Brief History of Time",
+                    required = true,
                     maxLength = 200
                 )
             }
@@ -185,6 +190,7 @@ fun BookFormScreen(
                     value = vm.author,
                     onValueChange = { vm.update("author", it) },
                     placeholder = "e.g. Stephen Hawking",
+                    required = true,
                     maxLength = 120
                 )
             }
@@ -194,6 +200,7 @@ fun BookFormScreen(
                     value = vm.publisher,
                     onValueChange = { vm.update("publisher", it) },
                     placeholder = "e.g. Bantam",
+                    required = true,
                     maxLength = 120
                 )
             }
@@ -203,6 +210,7 @@ fun BookFormScreen(
                     value = vm.publishYear,
                     onValueChange = { vm.update("year", it) },
                     placeholder = "e.g. 1998",
+                    required = true,
                     maxLength = 4,
                     keyboard = KeyboardType.Number
                 )
@@ -213,6 +221,7 @@ fun BookFormScreen(
                     value = vm.category,
                     onValueChange = { vm.update("category", it) },
                     placeholder = "e.g. Science",
+                    required = true,
                     maxLength = 50
                 )
             }
@@ -222,6 +231,7 @@ fun BookFormScreen(
                     value = vm.language,
                     onValueChange = { vm.update("language", it) },
                     placeholder = "e.g. English",
+                    required = true,
                     maxLength = 50
                 )
             }
@@ -231,6 +241,7 @@ fun BookFormScreen(
                     value = vm.pages,
                     onValueChange = { vm.update("pages", it) },
                     placeholder = "e.g. 212",
+                    required = true,
                     maxLength = 6,
                     keyboard = KeyboardType.Number
                 )
@@ -241,6 +252,7 @@ fun BookFormScreen(
                     value = vm.price,
                     onValueChange = { vm.update("price", it) },
                     placeholder = "e.g. 45.90",
+                    required = true,
                     maxLength = 10,
                     keyboard = KeyboardType.Decimal
                 )
@@ -251,6 +263,7 @@ fun BookFormScreen(
                     value = vm.description,
                     onValueChange = { vm.update("description", it) },
                     placeholder = "e.g. Short summary of the book…",
+                    required = true,
                     singleLine = false,
                     maxLines = 10,
                     maxLength = 1000
@@ -270,6 +283,7 @@ fun BookFormScreen(
                         value = vm.copyCount,
                         onValueChange = { vm.update("copies", it) },
                         placeholder = "e.g. 1",
+                        required = true,
                         maxLength = 3,
                         keyboard = KeyboardType.Number
                     )
@@ -280,6 +294,7 @@ fun BookFormScreen(
                         value = vm.shelfLocation,
                         onValueChange = { vm.update("shelf", it) },
                         placeholder = "e.g. B-12",
+                        required = true,
                         maxLength = 30
                     )
                 }

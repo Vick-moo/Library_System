@@ -27,6 +27,7 @@ import com.example.librarysystem.ui.auth.RegisterScreen
 import com.example.librarysystem.ui.auth.VerifyScreen
 import com.example.librarysystem.ui.books.BookDetailScreen
 import com.example.librarysystem.ui.books.BooksScreen
+import com.example.librarysystem.ui.books.CategoryScreen
 import com.example.librarysystem.ui.manage.BookFormScreen
 import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
@@ -58,6 +59,9 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var stack by remember { mutableStateOf(listOf("home")) }
     var selectedBookId by remember { mutableStateOf<String?>(null) }
     var selectedCopyId by remember { mutableStateOf<String?>(null) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    /** Bumped on every form entry so a fresh ViewModel is created (no stale draft). */
+    var formSeq by remember { mutableStateOf(0) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
     var staffMode by remember { mutableStateOf(false) }
     val current = stack.last()
@@ -96,7 +100,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
-        "manage-copy-edit", "manage-book"
+        "manage-copy-edit", "manage-book", "category"
     )
     Scaffold(
         bottomBar = {
@@ -138,8 +142,19 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
             when (current) {
                 "home" -> HomeScreen(
                     authKey = authVm.loggedInEmail ?: "guest",
-                    onOpenBook = ::openBook
+                    onOpenBook = ::openBook,
+                    onSeeAll = { cat ->
+                        selectedCategory = cat
+                        go("category")
+                    }
                 )
+                "category" -> selectedCategory?.let { cat ->
+                    CategoryScreen(
+                        category = cat,
+                        onBack = ::back,
+                        onOpenBook = ::openBook
+                    )
+                }
                 "login" -> LoginScreen(
                     vm = authVm,
                     onLoggedIn = {
@@ -181,7 +196,10 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     )
                 }
                 "manage" -> ManageScreen(
-                    onAddBook = { go("manage-add") },
+                    onAddBook = {
+                        formSeq++
+                        go("manage-add")
+                    },
                     onOpenBook = { id ->
                         selectedBookId = id
                         go("manage-book")
@@ -191,7 +209,10 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     BookManageScreen(
                         bookId = id,
                         onBack = ::back,
-                        onEditBook = { go("manage-edit") },
+                        onEditBook = {
+                            formSeq++
+                            go("manage-edit")
+                        },
                         onAddCopy = {
                             selectedCopyId = null
                             go("manage-copy-edit")
@@ -212,12 +233,14 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                 }
                 "manage-add" -> BookFormScreen(
                     bookId = null,
+                    formKey = formSeq,
                     onBack = ::back,
                     onSaved = { back() }
                 )
                 "manage-edit" -> selectedBookId?.let { id ->
                     BookFormScreen(
                         bookId = id,
+                        formKey = formSeq,
                         onBack = ::back,
                         onSaved = { back() }
                     )

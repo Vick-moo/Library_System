@@ -34,7 +34,8 @@ import com.example.librarysystem.ui.components.applyBookFilter
 fun HomeScreen(
     vm: BooksViewModel = viewModel(),
     authKey: String = "guest",
-    onOpenBook: (String) -> Unit = {}
+    onOpenBook: (String) -> Unit = {},
+    onSeeAll: (String) -> Unit = {}
 ) {
     var displayName by remember(authKey) { mutableStateOf<String?>(null) }
     LaunchedEffect(authKey) {
@@ -88,6 +89,7 @@ fun HomeScreen(
                                 title = cat,
                                 books = list,
                                 ratings = vm.ratings,
+                                onSeeAll = { onSeeAll(cat) },
                                 onBookClick = { onOpenBook(it.id) }
                             )
                         }
