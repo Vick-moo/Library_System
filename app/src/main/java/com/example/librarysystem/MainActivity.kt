@@ -242,7 +242,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                         bookId = id,
                         formKey = formSeq,
                         onBack = ::back,
-                        onSaved = { back() }
+                        onSaved = { back() },
+                        onDeleted = { goTab("manage") }
                     )
                 }
                 "profile" -> ProfileScreen(

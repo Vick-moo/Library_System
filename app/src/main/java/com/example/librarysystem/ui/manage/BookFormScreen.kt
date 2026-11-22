@@ -63,6 +63,7 @@ fun BookFormScreen(
     formKey: Int,
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    onDeleted: () -> Unit = onSaved,
     vm: BookFormViewModel = viewModel(key = "bookform-${bookId ?: "new"}-$formKey") {
         BookFormViewModel(bookId)
     }
@@ -385,7 +386,7 @@ fun BookFormScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showArchive = false
-                    vm.delete(onSaved)
+                    vm.delete(onDeleted)
                 }) { Text("Archive", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {

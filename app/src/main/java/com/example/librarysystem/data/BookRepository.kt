@@ -101,7 +101,7 @@ private data class CopyUpdate(
 )
 
 @Serializable
-private data class DeletedFlag(@SerialName("is_deleted") val isDeleted: Boolean = true)
+private data class DeletedFlag(@SerialName("is_deleted") val isDeleted: Boolean)
 
 @Serializable
 private data class CoverUpdate(@SerialName("cover_url") val coverUrl: String)
@@ -372,11 +372,14 @@ object BookRepository {
         }
     }
 
-    /** All copies of a book for staff (includes notes and deleted rows). */
+    /** Live copies of a book for staff (deleted ones are hidden). */
     suspend fun copiesForStaff(bookId: String): List<BookCopy> =
         supabase.from("book_copy")
             .select {
-                filter { eq("book_id", bookId) }
+                filter {
+                    eq("book_id", bookId)
+                    eq("is_deleted", false)
+                }
                 order("copy_no", Order.ASCENDING)
             }
             .decodeList<BookCopy>()
