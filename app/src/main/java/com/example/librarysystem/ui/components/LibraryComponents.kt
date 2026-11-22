@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
@@ -150,9 +151,9 @@ private data class BannerItem(val kicker: String, val title: String, val sub: St
 fun PromoBannerCarousel() {
     val banners = remember {
         listOf(
-            BannerItem("Announcement", "Hot Books This Week", "See what everyone is reading >"),
-            BannerItem("New Arrivals", "Fresh on the Shelves", "Check out this month's picks >"),
-            BannerItem("Reminder", "Return on Time", "Avoid fines: renew in 2 taps >")
+            BannerItem("Announcement", "Hot Books This Week", "See what everyone is reading"),
+            BannerItem("New Arrivals", "Fresh on the Shelves", "Check out this month's picks"),
+            BannerItem("Reminder", "Return on Time", "Avoid fines: renew in 2 taps")
         )
     }
     val pagerState = rememberPagerState(pageCount = { banners.size })
@@ -172,8 +173,16 @@ fun PromoBannerCarousel() {
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
-                    Text(banners[page].sub,
-                        color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(banners[page].sub,
+                            color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -206,13 +215,23 @@ fun DueBanner() {
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Text(
-            "2 books due in 3 days  >",
-            modifier = Modifier.padding(12.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "2 books due in 3 days",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }
 
@@ -367,12 +386,22 @@ fun CategoryRow(
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold)
-            Text(
-                "See all >",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clickable { onSeeAll() }
-            )
+            Row(
+                modifier = Modifier.clickable { onSeeAll() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "See all",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),

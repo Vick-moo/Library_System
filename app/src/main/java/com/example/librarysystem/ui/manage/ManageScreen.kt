@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,11 +36,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
+import android.content.res.Configuration
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import com.example.librarysystem.ui.components.LibraryTopAppBar
@@ -55,9 +58,10 @@ fun ManageScreen(
     LaunchedEffect(Unit) {
         if (vm.books.isNotEmpty()) vm.load()
     }
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Scaffold(
         topBar = {
-            LibraryTopAppBar(title = "Manage catalogue")
+            if (!landscape) LibraryTopAppBar(title = "Manage catalogue")
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddBook) {
@@ -72,7 +76,14 @@ fun ManageScreen(
                 onValueChange = vm::onQueryChange,
                 label = { Text("Search title / author / ISBN") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = if (landscape) 4.dp else 16.dp,
+                        bottom = if (landscape) 4.dp else 16.dp
+                    )
             )
 
             when {
@@ -100,7 +111,7 @@ fun ManageScreen(
                             )
                         }
                     } else {
-                        LazyColumn(Modifier.fillMaxSize()) {
+                        LazyColumn(Modifier.fillMaxSize().imePadding()) {
                             items(rows, key = { it.book.id }) { row ->
                                 ManageBookRow(
                                     row = row,

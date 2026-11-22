@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -51,6 +52,7 @@ fun LoginScreen(
     onGuest: () -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) { vm.clearInputs() }
     Scaffold(topBar = {
         LibraryTopAppBar(title = "Login", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
@@ -105,6 +107,7 @@ fun RegisterScreen(
     onBackToLogin: () -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) { vm.clearInputs() }
     Scaffold(topBar = {
         LibraryTopAppBar(title = "Register", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
@@ -158,6 +161,7 @@ fun VerifyScreen(
     onDone: () -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) { vm.clearVerifyInput() }
     Scaffold(topBar = {
         LibraryTopAppBar(title = "Verify email", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
@@ -194,7 +198,7 @@ fun VerifyScreen(
             }
             TextButton(
                 onClick = vm::resend,
-                enabled = !vm.loading,
+                enabled = !vm.loading && vm.codeSent,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text("Resend code")

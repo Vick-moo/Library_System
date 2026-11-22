@@ -136,14 +136,15 @@ fun DamageFormScreen(
                 }
             }
             Text(
-                if (vm.percent == 0) {
-                    "No compensation charged."
-                } else {
-                    "Compensation: RM %.2f".format(estimated)
+                when {
+                    vm.percent == 0 -> "No compensation charged."
+                    !copy.isOnLoan -> "No borrower - the damage is recorded but no fine is created."
+                    else -> "Compensation: RM %.2f".format(estimated)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (vm.percent == 0) MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (vm.percent == 0 || !copy.isOnLoan)
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.error
             )
 

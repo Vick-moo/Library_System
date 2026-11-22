@@ -69,6 +69,21 @@ class AuthViewModel : ViewModel() {
         error = null
     }
 
+    /** Clear inputs when a different auth screen is opened, so data never leaks across pages. */
+    fun clearInputs() {
+        email = ""
+        password = ""
+        code = ""
+        error = null
+        info = null
+    }
+
+    /** Verify screen keeps pendingEmail, but must not inherit a stale code or error. */
+    fun clearVerifyInput() {
+        code = ""
+        error = null
+    }
+
     private fun validEmail(): Boolean {
         if (!email.trim().contains("@")) {
             error = "Please enter a valid email"

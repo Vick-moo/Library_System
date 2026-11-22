@@ -154,7 +154,7 @@ fun BorrowDeskScreen(
 private fun BorrowTab(vm: BorrowDeskViewModel) {
     val listState = rememberLazyListState()
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().imePadding()) {
         PullToRefreshBox(
             isRefreshing = vm.refreshing,
             onRefresh = vm::refresh,
@@ -162,7 +162,7 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize().imePadding(),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                     start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp
                 )
@@ -288,7 +288,6 @@ private fun BorrowActionBar(vm: BorrowDeskViewModel) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .imePadding()
                 .padding(horizontal = 16.dp, vertical = if (landscape) 6.dp else 16.dp)
         ) {
             if (!landscape) {

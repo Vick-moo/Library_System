@@ -136,6 +136,11 @@ class BorrowDeskViewModel : ViewModel() {
     }
 
     private fun searchCopies() {
+        if (copyQuery.isBlank()) {
+            copies = emptyList()
+            copiesLoading = false
+            return
+        }
         viewModelScope.launch {
             copiesLoading = true
             try {
@@ -188,7 +193,6 @@ class BorrowDeskViewModel : ViewModel() {
                 selectedCopy = null
                 copyQuery = ""
                 copies = emptyList()
-                searchCopies()
                 searchStudent()
             } catch (e: Exception) {
                 snackbar = friendly(e, "Could not borrow this copy. Try again.")
