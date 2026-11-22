@@ -11,6 +11,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -101,6 +102,9 @@ private data class CopyUpdate(
 
 @Serializable
 private data class DeletedFlag(@SerialName("is_deleted") val isDeleted: Boolean = true)
+
+@Serializable
+private data class CoverUpdate(@SerialName("cover_url") val coverUrl: String)
 
 @Serializable
 private data class BorrowIdRow(@SerialName("borrow_id") val id: String)
@@ -348,6 +352,22 @@ object BookRepository {
 
     suspend fun softDeleteBook(bookId: String) {
         supabase.from("book").update(DeletedFlag(true)) {
+            filter { eq("book_id", bookId) }
+        }
+    }
+
+    /** Upload a cover image and return its public URL. */
+    suspend fun uploadCover(isbn: String, bytes: ByteArray, ext: String): String {
+        val bucket = supabase.storage.from("book-covers")
+        val path = "${isbn.trim()}.$ext"
+        bucket.upload(path, bytes) {
+            upsert = true
+        }
+        return bucket.publicUrl(path)
+    }
+
+    suspend fun updateBookCover(bookId: String, url: String) {
+        supabase.from("book").update(CoverUpdate(url)) {
             filter { eq("book_id", bookId) }
         }
     }

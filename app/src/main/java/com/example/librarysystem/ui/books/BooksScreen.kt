@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.model.Book
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +37,7 @@ fun BooksScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            LibraryTopAppBar(title = title)
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->

@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,10 +39,7 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (staffMode) "Staff profile" else "Profile") },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            LibraryTopAppBar(title = if (staffMode) "Staff profile" else "Profile")
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -110,10 +108,7 @@ fun ProfileScreen(
 fun RequireLoginScreen(onGoLogin: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Login required") },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            LibraryTopAppBar(title = "Login required")
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->

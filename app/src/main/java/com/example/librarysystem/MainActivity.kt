@@ -28,7 +28,8 @@ import com.example.librarysystem.ui.auth.VerifyScreen
 import com.example.librarysystem.ui.books.BookDetailScreen
 import com.example.librarysystem.ui.books.BooksScreen
 import com.example.librarysystem.ui.manage.BookFormScreen
-import com.example.librarysystem.ui.manage.CopiesScreen
+import com.example.librarysystem.ui.manage.BookManageScreen
+import com.example.librarysystem.ui.manage.CopyEditScreen
 import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
 fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var stack by remember { mutableStateOf(listOf("home")) }
     var selectedBookId by remember { mutableStateOf<String?>(null) }
+    var selectedCopyId by remember { mutableStateOf<String?>(null) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
     var staffMode by remember { mutableStateOf(false) }
     val current = stack.last()
@@ -91,9 +93,14 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     }
 
     val inAuth = current == "login" || current == "register" || current == "verify"
+    // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
+    val hideBottomBar = inAuth || current in setOf(
+        "manage-add", "manage-edit", "manage-copies",
+        "manage-copy-edit", "manage-book"
+    )
     Scaffold(
         bottomBar = {
-            if (!inAuth) {
+            if (!hideBottomBar) {
                 NavigationBar {
                     if (staffMode) {
                         staffTabs.forEach { tab ->
@@ -175,29 +182,45 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                 }
                 "manage" -> ManageScreen(
                     onAddBook = { go("manage-add") },
-                    onEditBook = { id ->
+                    onOpenBook = { id ->
                         selectedBookId = id
-                        go("manage-edit")
-                    },
-                    onOpenCopies = { id ->
-                        selectedBookId = id
-                        go("manage-copies")
+                        go("manage-book")
                     }
                 )
+                "manage-book" -> selectedBookId?.let { id ->
+                    BookManageScreen(
+                        bookId = id,
+                        onBack = ::back,
+                        onEditBook = { go("manage-edit") },
+                        onAddCopy = {
+                            selectedCopyId = null
+                            go("manage-copy-edit")
+                        },
+                        onEditCopy = { copyId ->
+                            selectedCopyId = copyId
+                            go("manage-copy-edit")
+                        }
+                    )
+                }
+                "manage-copy-edit" -> selectedBookId?.let { bookId ->
+                    CopyEditScreen(
+                        bookId = bookId,
+                        copyId = selectedCopyId,
+                        onBack = ::back,
+                        onSaved = { back() }
+                    )
+                }
                 "manage-add" -> BookFormScreen(
                     bookId = null,
                     onBack = ::back,
-                    onSaved = { goTab("manage") }
+                    onSaved = { back() }
                 )
                 "manage-edit" -> selectedBookId?.let { id ->
                     BookFormScreen(
                         bookId = id,
                         onBack = ::back,
-                        onSaved = { goTab("manage") }
+                        onSaved = { back() }
                     )
-                }
-                "manage-copies" -> selectedBookId?.let { id ->
-                    CopiesScreen(bookId = id, onBack = ::back)
                 }
                 "profile" -> ProfileScreen(
                     loggedInEmail = authVm.loggedInEmail,

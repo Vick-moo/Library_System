@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,15 +41,7 @@ fun LoginScreen(
     onBack: () -> Unit
 ) {
     Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Login") },
-            windowInsets = WindowInsets(0, 0, 0, 0),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        )
+        LibraryTopAppBar(title = "Login", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
@@ -103,15 +96,7 @@ fun RegisterScreen(
     onBack: () -> Unit
 ) {
     Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Register") },
-            windowInsets = WindowInsets(0, 0, 0, 0),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        )
+        LibraryTopAppBar(title = "Register", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
@@ -165,15 +150,7 @@ fun VerifyScreen(
     onBack: () -> Unit
 ) {
     Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Verify email") },
-            windowInsets = WindowInsets(0, 0, 0, 0),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        )
+        LibraryTopAppBar(title = "Verify email", onBack = onBack)
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.example.librarysystem.data.BookRepository
 import kotlinx.coroutines.launch
 
@@ -50,6 +51,14 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
     var dirty by mutableStateOf(false)
         private set
 
+    /** Newly picked cover image (not uploaded yet). */
+    var coverUri by mutableStateOf<Uri?>(null)
+        private set
+
+    /** Cover URL already stored on the book. */
+    var existingCoverUrl by mutableStateOf<String?>(null)
+        private set
+
     init {
         if (bookId != null) load()
     }
@@ -73,6 +82,11 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
         error = null
     }
 
+    fun setCover(uri: Uri?) {
+        coverUri = uri
+        dirty = true
+    }
+
     private fun load() {
         viewModelScope.launch {
             try {
@@ -88,6 +102,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
                     pages = b.pages?.toString().orEmpty()
                     price = b.price?.toString().orEmpty()
                     description = b.description.orEmpty()
+                    existingCoverUrl = b.coverUrl
                 }
             } catch (_: Exception) {
                 error = "Could not load this book."
@@ -97,7 +112,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
         }
     }
 
-    fun save(onSaved: () -> Unit) {
+    fun save(coverBytes: ByteArray?, coverExt: String, onSaved: () -> Unit) {
         val validation = validate()
         if (validation != null) {
             error = validation
@@ -110,6 +125,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
                 val year = publishYear.toInt()
                 val pageCount = pages.toInt()
                 val bookPrice = price.toDouble()
+                var targetBookId: String? = bookId
                 if (bookId == null) {
                     val created = BookRepository.createBook(
                         isbn = isbn.trim(),
@@ -123,6 +139,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
                         price = bookPrice,
                         description = description.trim()
                     )
+                    targetBookId = created.id
                     val count = copyCount.toIntOrNull() ?: 1
                     repeat(count) { index ->
                         BookRepository.createCopy(
@@ -147,6 +164,10 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
                         price = bookPrice,
                         description = description.trim()
                     )
+                }
+                if (coverBytes != null && targetBookId != null) {
+                    val url = BookRepository.uploadCover(isbn.trim(), coverBytes, coverExt)
+                    BookRepository.updateBookCover(targetBookId, url)
                 }
                 onSaved()
             } catch (e: Exception) {

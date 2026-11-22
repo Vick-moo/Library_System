@@ -18,8 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -40,13 +40,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageScreen(
     onAddBook: () -> Unit,
-    onEditBook: (String) -> Unit,
-    onOpenCopies: (String) -> Unit,
+    onOpenBook: (String) -> Unit,
     vm: ManageViewModel = viewModel()
 ) {
     // Re-entering the screen (e.g. after saving a book) reuses the cached VM; refresh silently.
@@ -55,10 +57,7 @@ fun ManageScreen(
     }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Manage catalogue") },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            LibraryTopAppBar(title = "Manage catalogue")
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddBook) {
@@ -105,8 +104,7 @@ fun ManageScreen(
                             items(rows, key = { it.book.id }) { row ->
                                 ManageBookRow(
                                     row = row,
-                                    onClick = { onEditBook(row.book.id) },
-                                    onCopies = { onOpenCopies(row.book.id) }
+                                    onClick = { onOpenBook(row.book.id) }
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.padding(start = 16.dp),
@@ -125,8 +123,7 @@ fun ManageScreen(
 @Composable
 private fun ManageBookRow(
     row: StaffBookRow,
-    onClick: () -> Unit,
-    onCopies: () -> Unit
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -142,12 +139,22 @@ private fun ManageBookRow(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                row.book.title.take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            val cover = row.book.coverUrl
+            if (!cover.isNullOrBlank()) {
+                AsyncImage(
+                    model = cover,
+                    contentDescription = row.book.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text(
+                    row.book.title.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -172,12 +179,10 @@ private fun ManageBookRow(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        IconButton(onClick = onCopies) {
-            Icon(
-                Icons.Filled.MenuBook,
-                contentDescription = "Copies",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

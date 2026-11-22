@@ -54,10 +54,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.example.librarysystem.data.model.Book
 import com.example.librarysystem.data.model.BookReviewRow
 import com.example.librarysystem.data.model.Reservation
 import com.example.librarysystem.data.model.Review
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,15 +87,7 @@ fun BookDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Book details") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
+            LibraryTopAppBar(title = "Book details", onBack = onBack)
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -208,20 +203,33 @@ fun BookDetailScreen(
 @Composable
 private fun DetailHeader(book: Book, reviews: List<BookReviewRow>) {
     Row(Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .width(110.dp)
-                .height(150.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                book.title.take(1).uppercase(),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        val cover = book.coverUrl
+        if (!cover.isNullOrBlank()) {
+            AsyncImage(
+                model = cover,
+                contentDescription = book.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(110.dp)
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(10.dp))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(110.dp)
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    book.title.take(1).uppercase(),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {

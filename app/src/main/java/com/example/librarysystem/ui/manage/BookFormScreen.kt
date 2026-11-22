@@ -1,8 +1,10 @@
 package com.example.librarysystem.ui.manage
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,11 +36,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.ui.components.LabeledField
+import com.example.librarysystem.ui.components.LibraryTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +66,11 @@ fun BookFormScreen(
 ) {
     var showDiscard by rememberSaveable { mutableStateOf(false) }
     var showArchive by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val pickCover = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) vm.setCover(uri) }
 
     val hasChanges = vm.dirty || (!vm.isEdit && (
         vm.isbn.isNotBlank() || vm.title.isNotBlank() || vm.author.isNotBlank()
@@ -62,22 +84,17 @@ fun BookFormScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (vm.isEdit) "Edit book" else "Add book") },
-                navigationIcon = {
-                    IconButton(onClick = { requestBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+            LibraryTopAppBar(
+                title = if (vm.isEdit) "Edit book" else "Add book",
+                onBack = { requestBack() }
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         if (vm.loading) {
-            Column(
+            Box(
                 Modifier.fillMaxSize().padding(padding),
-                verticalArrangement = Arrangement.Center
+                contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
@@ -92,6 +109,56 @@ fun BookFormScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item {
+                Column {
+                    Text(
+                        "Cover",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(84.dp, 112.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val model = vm.coverUri ?: vm.existingCoverUrl
+                            if (model != null) {
+                                AsyncImage(
+                                    model = model,
+                                    contentDescription = "Cover",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Filled.Image,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            OutlinedButton(onClick = {
+                                pickCover.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }) {
+                                Text(if (vm.coverUri == null && vm.existingCoverUrl == null) "Choose image" else "Change image")
+                            }
+                            if (vm.coverUri != null) {
+                                TextButton(onClick = { vm.setCover(null) }) {
+                                    Text("Clear selection", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 LabeledField(
                     label = "ISBN",
@@ -226,7 +293,19 @@ fun BookFormScreen(
 
             item {
                 Button(
-                    onClick = { vm.save(onSaved) },
+                    onClick = {
+                        val bytes = vm.coverUri?.let { uri ->
+                            runCatching {
+                                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                            }.getOrNull()
+                        }
+                        val ext = vm.coverUri?.let { uri ->
+                            context.contentResolver.getType(uri)
+                                ?.substringAfterLast('/')
+                                ?.let { if (it == "jpeg") "jpg" else it }
+                        } ?: "jpg"
+                        vm.save(bytes, ext, onSaved)
+                    },
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth()
                 ) {
