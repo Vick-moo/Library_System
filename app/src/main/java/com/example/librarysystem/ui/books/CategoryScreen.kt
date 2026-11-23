@@ -46,7 +46,9 @@ fun CategoryScreen(
     category: String,
     onBack: () -> Unit,
     onOpenBook: (String) -> Unit,
-    vm: BooksViewModel = viewModel()
+    // Own instance, not the Home one: sharing `viewModel()` made "See all" inherit the
+    // home search term, so a category opened while searching showed only the search hits.
+    vm: BooksViewModel = viewModel(key = "category-books")
 ) {
     val state = vm.state
 
