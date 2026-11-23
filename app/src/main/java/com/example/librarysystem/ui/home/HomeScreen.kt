@@ -81,10 +81,11 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize().padding(padding)
                 ) {
                     item { GreetingBlock(displayName) }
+                    item { PromoBannerCarousel() }
+                    // Due reminder sits *below* the promo banner, not above it (user preference).
                     alert?.takeIf { !it.isEmpty }?.let { banner ->
                         item { DueBanner(banner) { showLoans = true } }
                     }
-                    item { PromoBannerCarousel() }
                     item {
                         FilterPanel(
                             categories = categories,
