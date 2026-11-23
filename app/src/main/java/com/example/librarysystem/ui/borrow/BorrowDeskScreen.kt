@@ -229,16 +229,16 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
                         }
 
                         LabeledField(
-                            label = "Copy number or ISBN",
+                            label = "Book title or ISBN",
                             value = vm.copyQuery,
                             onValueChange = vm::onCopyQueryChange,
-                            placeholder = "e.g. C1 or 9781234567890",
+                            placeholder = "e.g. The Hobbit or 9780547928227",
                             maxLength = 100
                         )
 
                         if (vm.copyQuery.isBlank()) {
                             Text(
-                                "Type or scan a copy number / ISBN to find a copy. " +
+                                "Type a book title or ISBN and the matching copies are listed below. " +
                                     "The full catalogue lives under Manage.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
