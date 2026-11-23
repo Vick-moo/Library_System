@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import com.example.librarysystem.data.model.Book
+import com.example.librarysystem.data.model.StudentAlert
 import kotlin.math.roundToInt
 
 /** Fixed warm-orange banner: readable on both light and dark theme. */
@@ -225,34 +226,47 @@ fun PromoBannerCarousel() {
 }
 
 /**
- * Placeholder notice kept for the student "my loans" surface that belongs to a
- * later module. It is deliberately not rendered on Home: the text is static, so
- * showing it would state a fake due date for every visitor including guests.
- * The real version needs the student loan query and a Borrow tab to open.
+ * Real Home banner for a signed-in student: books due/overdue and unpaid fines.
+ * The caller only renders it when [alert] actually has something to say, so guests
+ * (and students with clean records) never see it.
  */
 @Composable
-fun DueBanner() {
+fun DueBanner(alert: StudentAlert, onClick: () -> Unit) {
+    val urgent = alert.overdueCount > 0 || alert.unpaidTotal > 0.0
+    val container = if (urgent) MaterialTheme.colorScheme.errorContainer
+    else MaterialTheme.colorScheme.surfaceVariant
+    val content = if (urgent) MaterialTheme.colorScheme.onErrorContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = container)
     ) {
         Row(
-            Modifier.padding(12.dp),
+            Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                Icons.Filled.Notifications,
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(10.dp))
             Text(
-                "2 books due in 3 days",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                alert.headline,
+                color = content,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
             )
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
+                tint = content,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

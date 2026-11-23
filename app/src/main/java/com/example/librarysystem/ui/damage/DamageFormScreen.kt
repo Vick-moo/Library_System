@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.model.DamageCopy
+import com.example.librarysystem.ui.components.LabeledField
 import com.example.librarysystem.ui.components.LibraryTopAppBar
 import kotlin.math.roundToInt
 
@@ -52,6 +53,11 @@ fun DamageFormScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Edge-to-edge (targetSdk 37) means the system never shrinks the window for the
+                // keyboard, so the ime inset has to be applied by us — and it must sit *before*
+                // verticalScroll so the scrollable viewport itself gets smaller. Then the focused
+                // field genuinely becomes off-screen and BringIntoViewRequester scrolls it up.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -146,15 +152,15 @@ fun DamageFormScreen(
                 else MaterialTheme.colorScheme.error
             )
 
-            OutlinedTextField(
+            LabeledField(
+                label = "Description",
                 value = vm.description,
                 onValueChange = vm::onDescriptionChange,
-                label = { Text("Description (optional)") },
-                placeholder = { Text("e.g. water damage on pages 10-40") },
-                minLines = 3,
+                placeholder = "e.g. water damage on pages 10-40",
+                singleLine = false,
                 maxLines = 5,
-                supportingText = { Text("${vm.description.length} / 300") },
-                modifier = Modifier.fillMaxWidth()
+                maxLength = 300,
+                supportingText = { Text("${vm.description.length} / 300") }
             )
 
             vm.error?.let {

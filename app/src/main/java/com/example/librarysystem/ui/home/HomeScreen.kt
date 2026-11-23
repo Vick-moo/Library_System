@@ -18,12 +18,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.AuthRepository
+import com.example.librarysystem.data.StudentSelfRepository
+import com.example.librarysystem.data.model.StudentAlert
 import com.example.librarysystem.ui.books.BooksViewModel
 import com.example.librarysystem.ui.books.BooksUiState
 import com.example.librarysystem.ui.components.BookFilter
 import com.example.librarysystem.ui.components.CategoryRow
+import com.example.librarysystem.ui.components.DueBanner
 import com.example.librarysystem.ui.components.FilterPanel
 import com.example.librarysystem.ui.components.GreetingBlock
+import com.example.librarysystem.ui.components.MyLoansDialog
 import com.example.librarysystem.ui.components.PromoBannerCarousel
 import com.example.librarysystem.ui.components.SearchTopBar
 import com.example.librarysystem.ui.components.applyBookFilter
@@ -37,8 +41,13 @@ fun HomeScreen(
     onSeeAll: (String) -> Unit = {}
 ) {
     var displayName by remember(authKey) { mutableStateOf<String?>(null) }
+    var alert by remember(authKey) { mutableStateOf<StudentAlert?>(null) }
+    var showLoans by remember { mutableStateOf(false) }
     LaunchedEffect(authKey) {
         displayName = try { AuthRepository.myFullName() } catch (_: Exception) { null }
+        // Guests have no student row, so there is nothing to fetch (and RLS would return nothing).
+        alert = if (authKey == "guest") null
+        else try { StudentSelfRepository.myAlert() } catch (_: Exception) { null }
     }
     Scaffold(
         topBar = {
@@ -72,6 +81,9 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize().padding(padding)
                 ) {
                     item { GreetingBlock(displayName) }
+                    alert?.takeIf { !it.isEmpty }?.let { banner ->
+                        item { DueBanner(banner) { showLoans = true } }
+                    }
                     item { PromoBannerCarousel() }
                     item {
                         FilterPanel(
@@ -95,5 +107,9 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (showLoans) {
+        alert?.let { MyLoansDialog(it) { showLoans = false } }
     }
 }

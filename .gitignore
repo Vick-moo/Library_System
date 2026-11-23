@@ -8,3 +8,6 @@ build/
 .cxx
 .DS_Store
 local.properties
+
+# local build logs
+build_out.txt
