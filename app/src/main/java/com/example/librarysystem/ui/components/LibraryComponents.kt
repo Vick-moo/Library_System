@@ -137,10 +137,24 @@ fun SearchTopBar(
     }
 }
 
+/** "1 review" / "N reviews" — keeps the singular grammatical everywhere. */
+fun reviewCountLabel(count: Int): String =
+    if (count == 1) "1 review" else "$count reviews"
+
+/** Time-of-day greeting so the header never claims "morning" in the evening. */
+private fun greetingFor(hour: Int): String = when {
+    hour < 12 -> "Good morning,"
+    hour < 18 -> "Good afternoon,"
+    else -> "Good evening,"
+}
+
 @Composable
 fun GreetingBlock(name: String? = null) {
+    // Recompute on each composition; the screen reloads on resume so the
+    // greeting follows the clock instead of staying frozen at its first value.
+    val greeting = greetingFor(java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY))
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Text("Good morning,", style = MaterialTheme.typography.bodyMedium)
+        Text(greeting, style = MaterialTheme.typography.bodyMedium)
         Text(name ?: "Guest", style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold)
     }
@@ -467,7 +481,7 @@ fun MiniBookCard(
             Text(book.author, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall)
             Text(
-                if (reviewCount > 0) "%.1f ★ %d reviews".format(rating ?: 0.0, reviewCount)
+                if (reviewCount > 0) "%.1f ★ %s".format(rating ?: 0.0, reviewCountLabel(reviewCount))
                 else "No ratings yet",
                 style = MaterialTheme.typography.labelSmall
             )

@@ -47,10 +47,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.librarysystem.data.model.TrendingBook
 
 private val Gold = Color(0xFFD4A017)
@@ -158,6 +160,10 @@ fun TrendsScreen(
     }
 }
 
+/** Singular/plural label for a review count. */
+private fun reviewLabel(count: Int): String =
+    if (count == 1) "1 review" else "$count reviews"
+
 @Composable
 private fun TrendRow(
     rank: Int,
@@ -173,20 +179,33 @@ private fun TrendRow(
     ) {
         RankBadge(rank)
         Spacer(Modifier.width(12.dp))
-        Box(
-            modifier = Modifier
-                .width(56.dp)
-                .height(76.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                book.title.take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        val cover = book.coverUrl
+        if (!cover.isNullOrBlank()) {
+            AsyncImage(
+                model = cover,
+                contentDescription = book.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(56.dp)
+                    .height(84.dp)
+                    .clip(RoundedCornerShape(6.dp))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(56.dp)
+                    .height(84.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    book.title.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -221,18 +240,18 @@ private fun TrendRow(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "${book.ratingCount} reviews",
+                        reviewLabel(book.ratingCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 TrendMetric.BORROWED -> Text(
-                    "${book.borrowCount} loans",
+                    if (book.borrowCount == 1) "1 loan" else "${book.borrowCount} loans",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 TrendMetric.REVIEWED -> Text(
-                    "${book.ratingCount} reviews",
+                    reviewLabel(book.ratingCount),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )

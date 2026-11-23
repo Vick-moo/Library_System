@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -154,7 +153,7 @@ fun BorrowDeskScreen(
 private fun BorrowTab(vm: BorrowDeskViewModel) {
     val listState = rememberLazyListState()
 
-    Column(Modifier.fillMaxSize().imePadding()) {
+    Column(Modifier.fillMaxSize()) {
         PullToRefreshBox(
             isRefreshing = vm.refreshing,
             onRefresh = vm::refresh,
@@ -383,7 +382,7 @@ private fun ReturnTab(vm: BorrowDeskViewModel) {
         onRefresh = vm::refresh,
         modifier = Modifier.fillMaxSize()
     ) {
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().imePadding()) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
             item {
                 Column(Modifier.padding(16.dp)) {
                     LabeledField(

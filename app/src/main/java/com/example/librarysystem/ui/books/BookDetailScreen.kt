@@ -63,6 +63,7 @@ import com.example.librarysystem.data.model.BookReviewRow
 import com.example.librarysystem.data.model.Reservation
 import com.example.librarysystem.data.model.Review
 import com.example.librarysystem.ui.components.LibraryTopAppBar
+import com.example.librarysystem.ui.components.reviewCountLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -262,7 +263,7 @@ private fun DetailHeader(book: Book, reviews: List<BookReviewRow>) {
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "${reviews.size} reviews",
+                        reviewCountLabel(reviews.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

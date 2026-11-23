@@ -38,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.librarysystem.data.model.Book
 import com.example.librarysystem.ui.components.LibraryTopAppBar
+import com.example.librarysystem.ui.components.reviewCountLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,7 +166,7 @@ private fun CategoryBookRow(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "${rating.second} reviews",
+                        reviewCountLabel(rating.second),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

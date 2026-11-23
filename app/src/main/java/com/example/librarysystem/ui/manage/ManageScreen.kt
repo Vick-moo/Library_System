@@ -1,4 +1,4 @@
-package com.example.librarysystem.ui.manage
+﻿package com.example.librarysystem.ui.manage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,7 +69,10 @@ fun ManageScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Column(Modifier.fillMaxSize().imePadding().padding(padding)) {
+        // adjustResize already shrinks this window when the keyboard opens, so the
+        // content must NOT add imePadding on top of it: doing so subtracts the
+        // keyboard height twice and squeezes the search field to a sliver.
+        Column(Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(
                 value = vm.query,
                 onValueChange = vm::onQueryChange,
@@ -86,43 +88,45 @@ fun ManageScreen(
                     )
             )
 
-            when {
-                vm.loading -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when {
+                    vm.loading -> Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
 
-                vm.error != null -> Box(
-                    Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) { Text(vm.error ?: "") }
+                    vm.error != null -> Box(
+                        Modifier.fillMaxSize().padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Text(vm.error ?: "") }
 
-                else -> {
-                    val rows = vm.filtered()
-                    if (rows.isEmpty()) {
-                        Box(
-                            Modifier.fillMaxSize().padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "No books found. Tap + to add one.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        LazyColumn(Modifier.fillMaxSize()) {
-                            items(rows, key = { it.book.id }) { row ->
-                                ManageBookRow(
-                                    row = row,
-                                    onClick = { onOpenBook(row.book.id) }
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 16.dp),
-                                    thickness = 1.dp
+                    else -> {
+                        val rows = vm.filtered()
+                        if (rows.isEmpty()) {
+                            Box(
+                                Modifier.fillMaxSize().padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "No books found. Tap + to add one.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            item { Spacer(Modifier.height(88.dp)) }
+                        } else {
+                            LazyColumn(Modifier.fillMaxSize()) {
+                                items(rows, key = { it.book.id }) { row ->
+                                    ManageBookRow(
+                                        row = row,
+                                        onClick = { onOpenBook(row.book.id) }
+                                    )
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(start = 16.dp),
+                                        thickness = 1.dp
+                                    )
+                                }
+                                item { Spacer(Modifier.height(88.dp)) }
+                            }
                         }
                     }
                 }
