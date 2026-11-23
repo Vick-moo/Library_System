@@ -22,7 +22,6 @@ import com.example.librarysystem.ui.books.BooksViewModel
 import com.example.librarysystem.ui.books.BooksUiState
 import com.example.librarysystem.ui.components.BookFilter
 import com.example.librarysystem.ui.components.CategoryRow
-import com.example.librarysystem.ui.components.DueBanner
 import com.example.librarysystem.ui.components.FilterPanel
 import com.example.librarysystem.ui.components.GreetingBlock
 import com.example.librarysystem.ui.components.PromoBannerCarousel
@@ -74,7 +73,6 @@ fun HomeScreen(
                 ) {
                     item { GreetingBlock(displayName) }
                     item { PromoBannerCarousel() }
-                    item { DueBanner() }
                     item {
                         FilterPanel(
                             categories = categories,

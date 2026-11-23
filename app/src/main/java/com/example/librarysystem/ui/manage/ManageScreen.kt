@@ -70,7 +70,7 @@ fun ManageScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().imePadding().padding(padding)) {
             OutlinedTextField(
                 value = vm.query,
                 onValueChange = vm::onQueryChange,
@@ -111,7 +111,7 @@ fun ManageScreen(
                             )
                         }
                     } else {
-                        LazyColumn(Modifier.fillMaxSize().imePadding()) {
+                        LazyColumn(Modifier.fillMaxSize()) {
                             items(rows, key = { it.book.id }) { row ->
                                 ManageBookRow(
                                     row = row,

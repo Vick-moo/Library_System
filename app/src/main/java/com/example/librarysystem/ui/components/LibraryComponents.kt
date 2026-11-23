@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -153,14 +154,16 @@ fun PromoBannerCarousel() {
         listOf(
             BannerItem("Announcement", "Hot Books This Week", "See what everyone is reading"),
             BannerItem("New Arrivals", "Fresh on the Shelves", "Check out this month's picks"),
-            BannerItem("Reminder", "Return on Time", "Avoid fines: renew in 2 taps")
+            BannerItem("Reminder", "Return on Time", "Avoid fines: return before the due date")
         )
     }
     val pagerState = rememberPagerState(pageCount = { banners.size })
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 12.dp,
+            modifier = Modifier.fillMaxWidth()
         ) { page ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = BannerOrange)
@@ -207,6 +210,12 @@ fun PromoBannerCarousel() {
     }
 }
 
+/**
+ * Placeholder notice kept for the student "my loans" surface that belongs to a
+ * later module. It is deliberately not rendered on Home: the text is static, so
+ * showing it would state a fake due date for every visitor including guests.
+ * The real version needs the student loan query and a Borrow tab to open.
+ */
 @Composable
 fun DueBanner() {
     Card(
