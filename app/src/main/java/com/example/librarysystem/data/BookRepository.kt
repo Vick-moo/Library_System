@@ -522,6 +522,34 @@ object BookRepository {
         return start.toString() to end.toString()
     }
 
+    /** Every reservation of one student (waiting / ready first, then history). */
+    suspend fun myReservations(studentNo: String): List<Reservation> =
+        supabase.from("reservation")
+            .select {
+                filter { eq("student_no", studentNo) }
+                order("reserved_at", Order.DESCENDING)
+            }
+            .decodeList<Reservation>()
+
+    /** Titles for a batch of book_ids (for the reservations list). */
+    suspend fun titlesOf(bookIds: List<String>): Map<String, String> {
+        if (bookIds.isEmpty()) return emptyMap()
+        return try {
+            supabase.from("book")
+                .select(columns = Columns.list("book_id", "title")) {
+                    filter { isIn("book_id", bookIds.distinct()) }
+                }
+                .decodeList<Map<String, String>>()
+                .mapNotNull {
+                    val id = it["book_id"] ?: return@mapNotNull null
+                    val title = it["title"] ?: "Unknown title"
+                    id to title
+                }.toMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
     /** Cancel my own reservation (RLS allows update only for the owner). */
     suspend fun cancelReservation(reservationId: String) {
         supabase.from("reservation").update(ReservationStatus("cancelled")) {

@@ -28,8 +28,10 @@ import com.example.librarysystem.ui.auth.LoginScreen
 import com.example.librarysystem.ui.auth.RegisterScreen
 import com.example.librarysystem.ui.auth.VerifyScreen
 import com.example.librarysystem.ui.books.BookDetailScreen
-import com.example.librarysystem.ui.books.BooksScreen
 import com.example.librarysystem.ui.books.CategoryScreen
+import com.example.librarysystem.ui.borrow.MyBorrowScreen
+import com.example.librarysystem.ui.calendar.BookingCalendarScreen
+import com.example.librarysystem.ui.seats.SeatsScreen
 import com.example.librarysystem.ui.manage.BookFormScreen
 import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
@@ -41,7 +43,6 @@ import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
 import com.example.librarysystem.ui.navigation.studentTabs
 import com.example.librarysystem.ui.profile.ProfileScreen
-import com.example.librarysystem.ui.profile.RequireLoginScreen
 import com.example.librarysystem.ui.theme.LibrarySystemTheme
 
 class MainActivity : ComponentActivity() {
@@ -108,7 +109,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
-        "manage-copy-edit", "manage-book", "category", "damage-form"
+        "manage-copy-edit", "manage-book", "category", "damage-form", "calendar"
     )
     // Landscape phones have very little vertical room: icons only, no labels.
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -195,12 +196,16 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     onBack = ::back
                 )
                 "trends" -> TrendsScreen(onOpenBook = ::openBook)
-                "seats" -> BooksScreen("Seats", onOpenBook = ::openBook)
+                "seats" -> SeatsScreen(onOpenCalendar = { go("calendar") })
                 "borrow" -> if (authVm.loggedInEmail == null) {
                     LaunchedEffect(Unit) { goTab("login") }
                 } else {
-                    BooksScreen("Borrow", onOpenBook = ::openBook)
+                    MyBorrowScreen(
+                        onOpenCalendar = { go("calendar") },
+                        onBrowseBooks = { goTab("home") }
+                    )
                 }
+                "calendar" -> BookingCalendarScreen(onBack = ::back)
                 "book" -> selectedBookId?.let { id ->
                     BookDetailScreen(
                         bookId = id,
