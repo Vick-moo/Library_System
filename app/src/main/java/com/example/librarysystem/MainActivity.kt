@@ -37,7 +37,9 @@ import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
 import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.borrow.BorrowDeskScreen
+import com.example.librarysystem.ui.damage.DamageEditScreen
 import com.example.librarysystem.ui.damage.DamageFormScreen
+import com.example.librarysystem.ui.damage.DamageSearchScreen
 import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
@@ -67,6 +69,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     /** Copy being reported as damaged on the standalone damage form. */
     var selectedDamageCopy by remember { mutableStateOf<com.example.librarysystem.data.model.DamageCopy?>(null) }
+    /** Report opened for editing from the damage list. */
+    var selectedDamageReport by remember { mutableStateOf<com.example.librarysystem.data.model.DamageReport?>(null) }
     /** Bumped on every form entry so a fresh ViewModel is created (no stale draft). */
     var formSeq by remember { mutableStateOf(0) }
     var pendingRoute by remember { mutableStateOf<String?>(null) }
@@ -109,7 +113,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     // Full-screen form pages hide the bottom bar so the keyboard never leaves a dead block above it.
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
-        "manage-copy-edit", "manage-book", "category", "damage-form", "calendar"
+        "manage-copy-edit", "manage-book", "category",
+        "damage-form", "damage-search", "damage-edit", "calendar"
     )
     // Landscape phones have very little vertical room: icons only, no labels.
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -215,20 +220,42 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     )
                 }
                 "borrow-desk" -> BorrowDeskScreen(
-                    onOpenDamageForm = { copy ->
-                        selectedDamageCopy = copy
-                        go("damage-form")
+                    onCreateDamage = { go("damage-search") },
+                    onEditDamageReport = { report ->
+                        selectedDamageReport = report
+                        go("damage-edit")
                     },
                     flashNotice = staffNotice,
                     onFlashConsumed = { staffNotice = null }
                 )
+                "damage-search" -> DamageSearchScreen(
+                    onBack = ::back,
+                    onPick = { copy ->
+                        selectedDamageCopy = copy
+                        go("damage-form")
+                    }
+                )
+                "damage-edit" -> selectedDamageReport?.let { report ->
+                    DamageEditScreen(
+                        report = report,
+                        onBack = ::back,
+                        onSaved = { message ->
+                            staffNotice = message
+                            goTab("borrow-desk")
+                        },
+                        onDeleted = { message ->
+                            staffNotice = message
+                            goTab("borrow-desk")
+                        }
+                    )
+                }
                 "damage-form" -> selectedDamageCopy?.let { copy ->
                     DamageFormScreen(
                         copy = copy,
                         onBack = ::back,
                         onSaved = { message ->
                             staffNotice = message
-                            back()
+                            goTab("borrow-desk")
                         }
                     )
                 }

@@ -4,6 +4,7 @@ import com.example.librarysystem.data.model.ActionResult
 import com.example.librarysystem.data.model.ActiveLoan
 import com.example.librarysystem.data.model.AvailableCopy
 import com.example.librarysystem.data.model.DamageCopy
+import com.example.librarysystem.data.model.DamageReport
 import com.example.librarysystem.data.model.FineRow
 import com.example.librarysystem.data.model.ReturnResult
 import com.example.librarysystem.data.model.SettleResult
@@ -41,6 +42,16 @@ private data class DamageParam(
     @SerialName("p_copy_id") val copyId: String,
     @SerialName("p_category") val category: String,
     @SerialName("p_percent") val percent: Int,
+    @SerialName("p_description") val description: String?
+)
+
+@Serializable
+private data class DamageReportIdParam(@SerialName("p_report_id") val reportId: String)
+
+@Serializable
+private data class UpdateDamageParam(
+    @SerialName("p_report_id") val reportId: String,
+    @SerialName("p_category") val category: String,
     @SerialName("p_description") val description: String?
 )
 
@@ -141,6 +152,43 @@ object BorrowRepository {
         }
         return res.decodeList<DamageCopy>()
     }
+
+    /** Copies that do not carry a damage report yet. */
+    suspend fun damageSearchCopies(query: String? = null): List<DamageCopy> {
+        val res = if (query.isNullOrBlank()) {
+            supabase.postgrest.rpc("staff_damage_search_copies")
+        } else {
+            supabase.postgrest.rpc("staff_damage_search_copies", QueryParam(query.trim()))
+        }
+        return res.decodeList<DamageCopy>()
+    }
+
+    /** Every damage report the staff has filed, newest first. */
+    suspend fun damageReports(query: String? = null): List<DamageReport> {
+        val res = if (query.isNullOrBlank()) {
+            supabase.postgrest.rpc("staff_damage_reports")
+        } else {
+            supabase.postgrest.rpc("staff_damage_reports", QueryParam(query.trim()))
+        }
+        return res.decodeList<DamageReport>()
+    }
+
+    /** Level + description only; the compensation percentage is locked. */
+    suspend fun updateDamageReport(
+        reportId: String,
+        category: String,
+        description: String?
+    ): ActionResult =
+        supabase.postgrest.rpc(
+            "staff_update_damage_report",
+            UpdateDamageParam(reportId, category, description?.trim()?.ifBlank { null })
+        ).decodeList<ActionResult>().firstOrNull() ?: ActionResult(false, "UNKNOWN")
+
+    /** Removes the report together with its fine; restores the copy when possible. */
+    suspend fun deleteDamageReport(reportId: String): ActionResult =
+        supabase.postgrest.rpc("staff_delete_damage_report", DamageReportIdParam(reportId))
+            .decodeList<ActionResult>()
+            .firstOrNull() ?: ActionResult(false, "UNKNOWN")
 
     suspend fun fines(status: String, query: String? = null): List<FineRow> =
         supabase.postgrest.rpc(

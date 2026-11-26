@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.fines
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -94,8 +95,8 @@ class FineDeskViewModel : ViewModel() {
             try {
                 fines = BorrowRepository.fines(filter, query)
                 error = null
-            } catch (_: Exception) {
-                error = "Could not refresh. Check the connection."
+            } catch (e: Exception) {
+                error = ErrorText.loadError(e)
             } finally {
                 refreshing = false
             }
@@ -187,7 +188,7 @@ class FineDeskViewModel : ViewModel() {
         return when {
             "row-level security" in m || "permission denied" in m ->
                 "You are not allowed to do that."
-            "network" in m || "timeout" in m -> "Network error. Try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             else -> "Something went wrong. Try again."
         }
     }

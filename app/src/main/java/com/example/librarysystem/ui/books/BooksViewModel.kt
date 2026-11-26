@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.librarysystem.data.BookRepository
+import com.example.librarysystem.data.ErrorText
 import com.example.librarysystem.data.model.Book
 import kotlinx.coroutines.launch
 
@@ -54,7 +55,7 @@ class BooksViewModel : ViewModel() {
                 }
                 BooksUiState.Ready(books)
             } catch (e: Exception) {
-                BooksUiState.Error(e.message ?: "Unknown error")
+                BooksUiState.Error(ErrorText.loadError(e))
             }
         }
     }

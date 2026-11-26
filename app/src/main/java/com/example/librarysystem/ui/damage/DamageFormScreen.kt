@@ -1,6 +1,7 @@
 package com.example.librarysystem.ui.damage
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,10 +22,12 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,7 +45,7 @@ fun DamageFormScreen(
     vm: DamageFormViewModel = viewModel()
 ) {
     // A fresh form every time the staff opens a different copy.
-    LaunchedEffect(copy.copyId) { vm.reset() }
+    LaunchedEffect(copy.copyId) { vm.reset(copy.isOnLoan) }
 
     val estimated = copy.bookPrice * vm.percent / 100.0
 
@@ -111,46 +115,56 @@ fun DamageFormScreen(
                 onClick = { vm.chooseCategory("major") }
             )
 
-            SectionTitle("Compensation")
-            Text(
-                "${vm.percent}% of book price",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Slider(
-                value = vm.percent.toFloat(),
-                onValueChange = { vm.choosePercent(it.roundToInt()) },
-                valueRange = 0f..100f,
-                steps = 3,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                listOf(0, 25, 50, 75, 100).forEach { p ->
-                    Text(
-                        "$p%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (p == vm.percent) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (p == vm.percent) FontWeight.Bold
-                        else FontWeight.Normal
-                    )
+            if (copy.isOnLoan) {
+                SectionTitle("Compensation")
+                Text(
+                    "${vm.percent}% of book price",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = vm.percent.toFloat(),
+                    onValueChange = { vm.choosePercent(it.roundToInt(), hasBorrower = true) },
+                    valueRange = 0f..100f,
+                    steps = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf(0, 25, 50, 75, 100).forEach { p ->
+                        Text(
+                            "$p%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (p == vm.percent) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (p == vm.percent) FontWeight.Bold
+                            else FontWeight.Normal
+                        )
+                    }
                 }
+                Text(
+                    if (vm.percent == 0) "No compensation charged."
+                    else "Compensation: RM %.2f".format(estimated),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (vm.percent == 0) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.error
+                )
+            } else {
+                SectionTitle("Compensation")
+                Text(
+                    "This copy is on the shelf, so there is no borrower to charge.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "No compensation will be recorded.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Text(
-                when {
-                    vm.percent == 0 -> "No compensation charged."
-                    !copy.isOnLoan -> "No borrower - the damage is recorded but no fine is created."
-                    else -> "Compensation: RM %.2f".format(estimated)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (vm.percent == 0 || !copy.isOnLoan)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.error
-            )
 
             LabeledField(
                 label = "Description",
@@ -171,8 +185,15 @@ fun DamageFormScreen(
                 )
             }
 
+            Text(
+                "Your compensation record cannot be changed after this is created.",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.error
+            )
+
             Button(
-                onClick = { vm.submit(copy, onSaved) },
+                onClick = { vm.requestSubmit() },
                 enabled = !vm.busy,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -186,6 +207,47 @@ fun DamageFormScreen(
             )
             Spacer(Modifier.height(8.dp))
         }
+    }
+
+    if (vm.confirming) {
+        val effectivePercent = if (copy.isOnLoan) vm.percent else 0
+        val fee = copy.bookPrice * effectivePercent / 100.0
+        AlertDialog(
+            onDismissRequest = vm::dismissConfirm,
+            title = { Text("Record this damage?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("\"${copy.bookTitle}\" (${copy.copyNo})")
+                    Text("Level: ${levelLabel(vm.category)}")
+                    if (effectivePercent > 0) {
+                        Text(
+                            "Compensation: RM %.2f (%d%% of the book price)"
+                                .format(fee, effectivePercent),
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text("Compensation: none")
+                    }
+                    Text(
+                        "The compensation is locked once saved.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { vm.confirmSubmit(copy, onSaved) },
+                    enabled = !vm.busy
+                ) {
+                    Text("Record damage")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::dismissConfirm) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -208,10 +270,15 @@ private fun DamageLevelRow(
     Row(
         Modifier
             .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton
+            )
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(selected = selected, onClick = null)
         Column {
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Text(

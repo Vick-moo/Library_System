@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.ErrorText
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -176,7 +177,7 @@ class CopyEditViewModel(
             "duplicate key" in m -> "That copy number already exists."
             "row-level security" in m || "permission denied" in m ->
                 "You are not allowed to do that."
-            "network" in m || "timeout" in m -> "Network error. Try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             else -> "Could not save. Try again."
         }
     }

@@ -49,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.librarysystem.data.model.ActiveLoan
 import com.example.librarysystem.data.model.AvailableCopy
 import com.example.librarysystem.data.model.DamageCopy
+import com.example.librarysystem.data.model.DamageReport
 import com.example.librarysystem.data.model.FineRow
 import com.example.librarysystem.ui.components.LabeledField
 import com.example.librarysystem.ui.components.LibraryTopAppBar
@@ -59,7 +60,8 @@ import android.content.res.Configuration
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BorrowDeskScreen(
-    onOpenDamageForm: (DamageCopy) -> Unit,
+    onCreateDamage: () -> Unit,
+    onEditDamageReport: (DamageReport) -> Unit,
     flashNotice: String? = null,
     onFlashConsumed: () -> Unit = {},
     vm: BorrowDeskViewModel = viewModel()
@@ -124,7 +126,10 @@ fun BorrowDeskScreen(
                         )
                     }
                 )
-                else -> DamageTab(onOpenForm = onOpenDamageForm)
+                else -> DamageTab(
+                    onCreateNew = onCreateDamage,
+                    onEditReport = onEditDamageReport
+                )
             }
         }
     }

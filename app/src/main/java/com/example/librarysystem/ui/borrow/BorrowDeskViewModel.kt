@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.borrow
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -329,8 +330,8 @@ class BorrowDeskViewModel : ViewModel() {
                         }
                     }
                 }
-            } catch (_: Exception) {
-                snackbar = "Could not refresh. Check the connection."
+            } catch (e: Exception) {
+                snackbar = ErrorText.loadError(e)
             } finally {
                 refreshing = false
             }
@@ -357,7 +358,7 @@ class BorrowDeskViewModel : ViewModel() {
         return when {
             "row-level security" in m || "permission denied" in m ->
                 "You are not allowed to do that."
-            "network" in m || "timeout" in m -> "Network error. Try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             "not_allowed" in m -> "Only admin or librarian can settle fines."
             else -> fallback
         }

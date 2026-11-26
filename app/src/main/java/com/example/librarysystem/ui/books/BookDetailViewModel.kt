@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.books
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -273,8 +274,7 @@ class BookDetailViewModel(private val bookId: String) : ViewModel() {
             "duplicate key" in m || "unique" in m -> "You already did that."
             "row-level security" in m || "permission denied" in m ->
                 "You are not allowed to do that."
-            "network" in m || "timeout" in m || "unable to resolve host" in m ->
-                "Network error. Check your connection and try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             else -> fallback
         }
     }

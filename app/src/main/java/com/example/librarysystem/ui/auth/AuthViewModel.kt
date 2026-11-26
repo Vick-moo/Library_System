@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.auth
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -113,8 +114,7 @@ class AuthViewModel : ViewModel() {
                 "Please verify your email first. Check your inbox for the code."
             "rate limit" in m || "only request this after" in m || "too many" in m ->
                 "Too many attempts. Please wait a minute and try again."
-            "network" in m || "unable to resolve host" in m || "timeout" in m ->
-                "Network error. Check your connection and try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             "email" in m && "invalid" in m ->
                 "That email address does not look right."
             else -> fallback

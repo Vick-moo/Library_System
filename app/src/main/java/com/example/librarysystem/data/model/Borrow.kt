@@ -89,8 +89,43 @@ data class ActionResult(
     val ok: Boolean,
     val message: String = "",
     @SerialName("fine_amount") val fineAmount: Double? = null,
-    @SerialName("report_id") val reportId: String? = null
+    @SerialName("report_id") val reportId: String? = null,
+    @SerialName("fine_status") val fineStatus: String? = null
 )
+
+@Serializable
+data class DamageReport(
+    @SerialName("report_id") val reportId: String,
+    @SerialName("copy_id") val copyId: String,
+    @SerialName("copy_no") val copyNo: String,
+    @SerialName("book_title") val bookTitle: String,
+    @SerialName("book_author") val bookAuthor: String = "",
+    @SerialName("book_price") val bookPrice: Double = 0.0,
+    val category: String,
+    val description: String? = null,
+    @SerialName("compensation_percent") val compensationPercent: Int = 0,
+    @SerialName("student_no") val studentNo: String? = null,
+    @SerialName("student_name") val studentName: String? = null,
+    @SerialName("reported_by") val reportedBy: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("copy_status") val copyStatus: String = "unavailable",
+    @SerialName("fine_id") val fineId: String? = null,
+    @SerialName("fine_type") val fineType: String? = null,
+    @SerialName("fine_amount") val fineAmount: Double? = null,
+    @SerialName("fine_status") val fineStatus: String? = null
+) {
+    val levelLabel: String
+        get() = when (category) {
+            "lost" -> "Lost"
+            "major" -> "Major damage"
+            else -> "Minor damage"
+        }
+
+    val hasBorrower: Boolean get() = !studentNo.isNullOrBlank()
+
+    /** Only dates, the list never needs the time part. */
+    val dateLabel: String get() = createdAt?.take(10) ?: ""
+}
 
 @Serializable
 data class DamageCopy(

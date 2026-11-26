@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -226,7 +227,7 @@ class BookFormViewModel(private val bookId: String?) : ViewModel() {
             "duplicate key" in m -> "That value already exists."
             "row-level security" in m || "permission denied" in m ->
                 "You are not allowed to do that."
-            "network" in m || "timeout" in m -> "Network error. Try again."
+            ErrorText.isNetwork(e) -> ErrorText.OFFLINE
             else -> "Could not save. Check the fields and try again."
         }
     }

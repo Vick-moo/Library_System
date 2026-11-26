@@ -1,5 +1,6 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -71,7 +72,7 @@ class ManageViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                error = "Could not load the catalogue. Pull to refresh."
+                error = ErrorText.loadError(e)
             } finally {
                 loading = false
             }
