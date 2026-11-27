@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 
 import androidx.compose.material.icons.Icons
 
+import com.example.librarysystem.ui.components.ScanIconButton
 import com.example.librarysystem.ui.components.QrScannerDialog
 
 import androidx.compose.material3.IconButton
@@ -256,12 +257,7 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
                             placeholder = "e.g. The Hobbit or 9780547928227",
                             maxLength = 100,
                             trailingIcon = {
-                                IconButton(onClick = { showScanner = true }) {
-                                    Icon(
-                                        Icons.Filled.QrCodeScanner,
-                                        contentDescription = "Scan a label"
-                                    )
-                                }
+                                ScanIconButton(onOpen = { showScanner = true })
                             }
                         )
 

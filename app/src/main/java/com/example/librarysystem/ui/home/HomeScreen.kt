@@ -95,11 +95,7 @@ fun HomeScreen(
                 )
                 val categories = s.books.mapNotNull { it.category }.distinct().sorted()
                 val languages = s.books.mapNotNull { it.language }.distinct().sorted()
-                val groups = if (filter.ranking != "None") {
-                    linkedMapOf(filter.ranking to books)
-                } else {
-                    books.groupBy { it.category ?: "Other" }
-                }
+                val groups = books.groupBy { it.category ?: "Other" }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding)
                 ) {

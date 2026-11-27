@@ -2,6 +2,7 @@ package com.example.librarysystem.ui.damage
 
 import com.example.librarysystem.util.QrCodes
 
+import com.example.librarysystem.ui.components.ScanIconButton
 import com.example.librarysystem.ui.components.QrScannerDialog
 
 import androidx.compose.runtime.setValue
@@ -83,9 +84,7 @@ fun DamageSearchScreen(
                 placeholder = { Text("copy no / title / ISBN / student") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { showScanner = true }) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan a label")
-                    }
+                    ScanIconButton(onOpen = { showScanner = true })
                 },
                 singleLine = true,
                 modifier = Modifier

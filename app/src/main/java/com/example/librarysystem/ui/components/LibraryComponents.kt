@@ -64,7 +64,8 @@ import kotlin.math.roundToInt
 private val BannerOrange = Color(0xFF9E5100)
 
 data class BookFilter(
-    val category: String = "All",
+    /** Empty = every category. Several may be picked at once. */
+    val categories: Set<String> = emptySet(),
     val language: String = "All",
     val pages: String = "All",
     val minRating: Double = 0.0,
@@ -82,7 +83,7 @@ fun applyBookFilter(
     rankingIds: List<String> = emptyList()
 ): List<Book> {
     var out = books
-    if (filter.category != "All") out = out.filter { it.category == filter.category }
+    if (filter.categories.isNotEmpty()) out = out.filter { it.category in filter.categories }
     if (filter.language != "All") out = out.filter { it.language == filter.language }
     out = when (filter.pages) {
         "< 200" -> out.filter { (it.pages ?: Int.MAX_VALUE) < 200 }
@@ -312,11 +313,19 @@ fun FilterPanel(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FilterSection(
+                    MultiFilterSection(
                         title = "Category",
-                        options = listOf("All") + categories,
-                        selected = filter.category,
-                        onSelect = { onFilterChange(filter.copy(category = it)) }
+                        options = categories,
+                        selected = filter.categories,
+                        onToggle = { name ->
+                            val next = if (name in filter.categories) {
+                                filter.categories - name
+                            } else {
+                                filter.categories + name
+                            }
+                            onFilterChange(filter.copy(categories = next))
+                        },
+                        onClear = { onFilterChange(filter.copy(categories = emptySet())) }
                     )
                     FilterSection(
                         title = "Language",
@@ -393,6 +402,40 @@ private fun RatingSlider(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MultiFilterSection(
+    title: String,
+    options: List<String>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    Column {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selected.isEmpty(),
+                onClick = onClear,
+                label = { Text("All") }
+            )
+            options.forEach { opt ->
+                FilterChip(
+                    selected = opt in selected,
+                    onClick = { onToggle(opt) },
+                    label = { Text(opt) }
+                )
+            }
         }
     }
 }

@@ -175,7 +175,8 @@ fun BookManageScreen(
                                         LabelItem(
                                             isbn = book.isbn,
                                             copyNo = copy.copyNo,
-                                            bookTitle = book.title
+                                            bookTitle = book.title,
+                                            coverUrl = book.coverUrl
                                         )
                                     )
                                     Toast.makeText(

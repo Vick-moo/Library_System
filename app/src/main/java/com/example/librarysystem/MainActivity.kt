@@ -191,7 +191,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                         pendingRoute = null
                         goTab("home")
                     },
-                    onBack = ::back
+                    onBack = { if (stack.size > 1) back() else goTab("home") }
                 )
                 "register" -> RegisterScreen(
                     vm = authVm,

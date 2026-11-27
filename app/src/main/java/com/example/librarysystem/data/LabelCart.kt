@@ -11,7 +11,8 @@ import kotlinx.serialization.json.Json
 data class LabelItem(
     val isbn: String? = null,
     val copyNo: String,
-    val bookTitle: String
+    val bookTitle: String,
+    val coverUrl: String? = null
 ) {
     val key: String get() = "${isbn.orEmpty()}|$copyNo"
 }
@@ -60,6 +61,12 @@ object LabelCart {
 
     fun remove(item: LabelItem) {
         items = items.filterNot { it.key == item.key }
+        persist()
+    }
+
+    /** Removes every copy of one book. */
+    fun removeBook(isbn: String?, bookTitle: String) {
+        items = items.filterNot { it.isbn == isbn && it.bookTitle == bookTitle }
         persist()
     }
 

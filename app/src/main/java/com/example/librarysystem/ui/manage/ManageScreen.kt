@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 
 import com.example.librarysystem.util.QrCodes
 
+import com.example.librarysystem.ui.components.ScanIconButton
 import com.example.librarysystem.ui.components.QrScannerDialog
 
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -134,9 +135,7 @@ fun ManageScreen(
                 label = { Text("Search title / author / ISBN") },
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(onClick = { showScanner = true }) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan a label")
-                    }
+                    ScanIconButton(onOpen = { showScanner = true })
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,7 +193,8 @@ fun ManageScreen(
                                                         LabelItem(
                                                             isbn = row.book.isbn,
                                                             copyNo = it.copyNo,
-                                                            bookTitle = row.book.title
+                                                            bookTitle = row.book.title,
+                                                            coverUrl = row.book.coverUrl
                                                         )
                                                     }
                                                 )
