@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.borrow
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -317,6 +319,7 @@ class BorrowDeskViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 when (tab) {
                     1 -> loans = BorrowRepository.activeLoans()
@@ -333,6 +336,7 @@ class BorrowDeskViewModel : ViewModel() {
             } catch (e: Exception) {
                 snackbar = ErrorText.loadError(e)
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }

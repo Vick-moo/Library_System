@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import com.example.librarysystem.data.LabelItem
 
 import com.example.librarysystem.data.LabelCart
@@ -85,6 +87,7 @@ class BookManageViewModel(private val bookId: String) : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 book = BookRepository.bookById(bookId)
                 copies = BookRepository.copiesForStaff(bookId)
@@ -92,6 +95,7 @@ class BookManageViewModel(private val bookId: String) : ViewModel() {
             } catch (e: Exception) {
                 error = "Could not load this book."
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }

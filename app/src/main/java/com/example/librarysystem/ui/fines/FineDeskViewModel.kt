@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.fines
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,12 +94,14 @@ class FineDeskViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 fines = BorrowRepository.fines(filter, query)
                 error = null
             } catch (e: Exception) {
                 error = ErrorText.loadError(e)
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }

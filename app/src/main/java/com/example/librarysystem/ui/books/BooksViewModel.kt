@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.books
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -42,6 +44,7 @@ class BooksViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 val books = if (query.isBlank()) {
                     BookRepository.listBooks()
@@ -54,6 +57,7 @@ class BooksViewModel : ViewModel() {
             } catch (e: Exception) {
                 // Keep whatever is on screen; a failed pull must not blank the list.
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }

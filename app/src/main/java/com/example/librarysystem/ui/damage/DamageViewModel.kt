@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.damage
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -64,12 +66,14 @@ class DamageViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 reports = BorrowRepository.damageReports(query)
                 error = null
             } catch (e: Exception) {
                 error = ErrorText.loadError(e)
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }
@@ -114,12 +118,14 @@ class DamageSearchViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 copies = BorrowRepository.damageSearchCopies(query)
                 error = null
             } catch (e: Exception) {
                 error = ErrorText.loadError(e)
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }

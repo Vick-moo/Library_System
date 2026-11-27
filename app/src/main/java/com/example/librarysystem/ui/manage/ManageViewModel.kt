@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.keepSpinnerVisible
+
 import com.example.librarysystem.data.model.BookCopy
 
 import com.example.librarysystem.data.ErrorText
@@ -93,6 +95,7 @@ class ManageViewModel : ViewModel() {
         if (refreshing) return
         viewModelScope.launch {
             refreshing = true
+            val startedRefresh = System.currentTimeMillis()
             try {
                 val all = BookRepository.allBooksForStaff()
                 val copies = try {
@@ -114,6 +117,7 @@ class ManageViewModel : ViewModel() {
             } catch (e: Exception) {
                 error = ErrorText.loadError(e)
             } finally {
+                keepSpinnerVisible(startedRefresh)
                 refreshing = false
             }
         }
