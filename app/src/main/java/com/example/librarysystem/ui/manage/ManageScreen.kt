@@ -1,4 +1,36 @@
-﻿package com.example.librarysystem.ui.manage
+package com.example.librarysystem.ui.manage
+
+import androidx.compose.runtime.setValue
+
+import androidx.compose.runtime.remember
+
+import androidx.compose.runtime.mutableStateOf
+
+import androidx.compose.runtime.getValue
+
+import com.example.librarysystem.util.QrCodes
+
+import com.example.librarysystem.ui.components.QrScannerDialog
+
+import androidx.compose.material.icons.filled.QrCodeScanner
+
+import com.example.librarysystem.data.LabelItem
+
+import com.example.librarysystem.data.LabelCart
+
+import android.widget.Toast
+
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.compose.material3.BadgedBox
+
+import androidx.compose.material3.Badge
+
+import androidx.compose.material.icons.filled.ShoppingCart
+
+import androidx.compose.foundation.combinedClickable
+
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +83,7 @@ import com.example.librarysystem.ui.components.LibraryTopAppBar
 fun ManageScreen(
     onAddBook: () -> Unit,
     onOpenBook: (String) -> Unit,
+    onOpenCart: () -> Unit,
     vm: ManageViewModel = viewModel()
 ) {
     // Re-entering the screen (e.g. after saving a book) reuses the cached VM; refresh silently.
@@ -58,9 +91,31 @@ fun ManageScreen(
         if (vm.books.isNotEmpty()) vm.load()
     }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val context = LocalContext.current
+    var showScanner by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
-            if (!landscape) LibraryTopAppBar(title = "Manage catalogue")
+            if (!landscape) {
+                LibraryTopAppBar(
+                    title = "Manage catalogue",
+                    actions = {
+                        IconButton(onClick = onOpenCart) {
+                            BadgedBox(
+                                badge = {
+                                    if (LabelCart.items.isNotEmpty()) {
+                                        Badge { Text("${LabelCart.items.size}") }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Filled.ShoppingCart,
+                                    contentDescription = "Label cart"
+                                )
+                            }
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddBook) {
@@ -78,6 +133,11 @@ fun ManageScreen(
                 onValueChange = vm::onQueryChange,
                 label = { Text("Search title / author / ISBN") },
                 singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = { showScanner = true }) {
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan a label")
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
@@ -118,7 +178,34 @@ fun ManageScreen(
                                 items(rows, key = { it.book.id }) { row ->
                                     ManageBookRow(
                                         row = row,
-                                        onClick = { onOpenBook(row.book.id) }
+                                        onClick = { onOpenBook(row.book.id) },
+                                        onLongPress = {
+                                            val copies = vm.copiesByBook[row.book.id].orEmpty()
+                                                .filterNot { it.isDeleted }
+                                            if (copies.isEmpty()) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "This book has no copies to label",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                val added = LabelCart.addAll(
+                                                    copies.map {
+                                                        LabelItem(
+                                                            isbn = row.book.isbn,
+                                                            copyNo = it.copyNo,
+                                                            bookTitle = row.book.title
+                                                        )
+                                                    }
+                                                )
+                                                Toast.makeText(
+                                                    context,
+                                                    if (added == 0) "Already in the label cart"
+                                                    else "Added $added label${if (added == 1) "" else "s"}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
                                     )
                                     HorizontalDivider(
                                         modifier = Modifier.padding(start = 16.dp),
@@ -133,16 +220,25 @@ fun ManageScreen(
             }
         }
     }
+
+    if (showScanner) {
+        QrScannerDialog(
+            onResult = { raw -> vm.onQueryChange(QrCodes.isbnOf(raw)) },
+            onDismiss = { showScanner = false }
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ManageBookRow(
     row: StaffBookRow,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -30,6 +30,29 @@ class BooksViewModel : ViewModel() {
     var availableIds by mutableStateOf(setOf<String>())
         private set
 
+    /** Book ids in ranking order, refreshed when the Home filter picks a ranking. */
+    var rankingIds by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    fun loadRanking(ranking: String) {
+        if (ranking == "None") {
+            rankingIds = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            rankingIds = try {
+                val metric = when (ranking) {
+                    "Highest Rated" -> "rated"
+                    "Most Borrowed" -> "borrowed"
+                    else -> "reviewed"
+                }
+                BookRepository.trendingBooks(metric = metric).map { it.id }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
+
     init {
         load()
     }

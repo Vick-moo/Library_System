@@ -69,14 +69,17 @@ data class BookFilter(
     val pages: String = "All",
     val minRating: Double = 0.0,
     val onlyAvailable: Boolean = false,
-    val sort: String = "Title A–Z"
+    val sort: String = "Title A–Z",
+    /** None | Highest Rated | Most Borrowed | Most Reviewed */
+    val ranking: String = "None"
 )
 
 fun applyBookFilter(
     books: List<Book>,
     ratings: Map<String, Pair<Double, Int>>,
     availableIds: Set<String>,
-    filter: BookFilter
+    filter: BookFilter,
+    rankingIds: List<String> = emptyList()
 ): List<Book> {
     var out = books
     if (filter.category != "All") out = out.filter { it.category == filter.category }
@@ -93,9 +96,15 @@ fun applyBookFilter(
     if (filter.onlyAvailable && availableIds.isNotEmpty()) {
         out = out.filter { it.id in availableIds }
     }
-    out = when (filter.sort) {
-        "Newest" -> out.sortedByDescending { it.createdAt ?: "" }
-        else -> out.sortedBy { it.title.lowercase() }
+    // A ranking wins over the plain sort; books missing from the ranking go last.
+    if (filter.ranking != "None" && rankingIds.isNotEmpty()) {
+        val order = rankingIds.withIndex().associate { (i, id) -> id to i }
+        out = out.sortedBy { order[it.id] ?: Int.MAX_VALUE }
+    } else {
+        out = when (filter.sort) {
+            "Newest" -> out.sortedByDescending { it.createdAt ?: "" }
+            else -> out.sortedBy { it.title.lowercase() }
+        }
     }
     return out
 }
@@ -339,6 +348,12 @@ fun FilterPanel(
                                 style = MaterialTheme.typography.bodyMedium)
                         }
                     }
+                    FilterSection(
+                        title = "Ranking",
+                        options = listOf("None", "Highest Rated", "Most Borrowed", "Most Reviewed"),
+                        selected = filter.ranking,
+                        onSelect = { onFilterChange(filter.copy(ranking = it)) }
+                    )
                     FilterSection(
                         title = "Sort by",
                         options = listOf("Title A–Z", "Newest"),

@@ -90,10 +90,16 @@ fun HomeScreen(
 
             is BooksUiState.Ready -> {
                 var filter by remember { mutableStateOf(BookFilter()) }
-                val books = applyBookFilter(s.books, vm.ratings, vm.availableIds, filter)
+                val books = applyBookFilter(
+                    s.books, vm.ratings, vm.availableIds, filter, vm.rankingIds
+                )
                 val categories = s.books.mapNotNull { it.category }.distinct().sorted()
                 val languages = s.books.mapNotNull { it.language }.distinct().sorted()
-                val groups = books.groupBy { it.category ?: "Other" }
+                val groups = if (filter.ranking != "None") {
+                    linkedMapOf(filter.ranking to books)
+                } else {
+                    books.groupBy { it.category ?: "Other" }
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding)
                 ) {
@@ -108,7 +114,12 @@ fun HomeScreen(
                             categories = categories,
                             languages = languages,
                             filter = filter,
-                            onFilterChange = { filter = it }
+                            onFilterChange = { next ->
+                                if (next.ranking != filter.ranking) {
+                                    vm.loadRanking(next.ranking)
+                                }
+                                filter = next
+                            }
                         )
                     }
                     groups.forEach { (cat, list) ->

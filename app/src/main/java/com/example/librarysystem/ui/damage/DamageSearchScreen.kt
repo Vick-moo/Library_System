@@ -1,5 +1,21 @@
 package com.example.librarysystem.ui.damage
 
+import com.example.librarysystem.util.QrCodes
+
+import com.example.librarysystem.ui.components.QrScannerDialog
+
+import androidx.compose.runtime.setValue
+
+import androidx.compose.runtime.remember
+
+import androidx.compose.runtime.mutableStateOf
+
+import androidx.compose.runtime.getValue
+
+import androidx.compose.material3.IconButton
+
+import androidx.compose.material.icons.filled.QrCodeScanner
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +69,8 @@ fun DamageSearchScreen(
 ) {
     LaunchedEffect(Unit) { vm.load() }
 
+    var showScanner by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = { LibraryTopAppBar(title = "Record damage", onBack = onBack) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -64,6 +82,11 @@ fun DamageSearchScreen(
                 label = { Text("Search copy") },
                 placeholder = { Text("copy no / title / ISBN / student") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(onClick = { showScanner = true }) {
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan a label")
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -124,6 +147,13 @@ fun DamageSearchScreen(
                 }
             }
         }
+    }
+
+    if (showScanner) {
+        QrScannerDialog(
+            onResult = { raw -> vm.onQueryChange(QrCodes.isbnOf(raw)) },
+            onDismiss = { showScanner = false }
+        )
     }
 }
 

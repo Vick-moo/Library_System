@@ -47,6 +47,7 @@ fun LabeledField(
     readOnly: Boolean = false,
     required: Boolean = false,
     supportingText: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val requester = remember { BringIntoViewRequester() }
@@ -94,6 +95,7 @@ fun LabeledField(
             readOnly = readOnly,
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
             supportingText = supportingText,
+            trailingIcon = trailingIcon,
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { state ->

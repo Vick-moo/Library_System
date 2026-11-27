@@ -1,5 +1,15 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.LabelItem
+
+import com.example.librarysystem.data.LabelCart
+
+import android.widget.Toast
+
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.compose.material.icons.filled.AddShoppingCart
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,11 +30,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +108,9 @@ fun BookManageScreen(
         if (vm.book != null) vm.load()
     }
 
+    var qrCopy by remember { mutableStateOf<BookCopy?>(null) }
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
             LibraryTopAppBar(
@@ -149,13 +165,45 @@ fun BookManageScreen(
                         }
                     } else {
                         items(vm.copies, key = { it.id }) { copy ->
-                            CopyRow(copy, onClick = { onEditCopy(copy.id) })
+                            CopyRow(
+                                copy = copy,
+                                isbn = book.isbn,
+                                onClick = { onEditCopy(copy.id) },
+                                onQr = { qrCopy = copy },
+                                onAdd = {
+                                    val added = LabelCart.add(
+                                        LabelItem(
+                                            isbn = book.isbn,
+                                            copyNo = copy.copyNo,
+                                            bookTitle = book.title
+                                        )
+                                    )
+                                    Toast.makeText(
+                                        context,
+                                        if (added) "Added to label cart"
+                                        else "Already in the label cart",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
                             HorizontalDivider(thickness = 1.dp)
                         }
                     }
                     item { Spacer(Modifier.height(88.dp)) }
                 }
             }
+        }
+    }
+
+    qrCopy?.let { copy ->
+        vm.book?.let { book ->
+            QrLabelDialog(
+                title = book.title,
+                subtitle = "Copy ${copy.copyNo}",
+                isbn = book.isbn,
+                copyNo = copy.copyNo,
+                onDismiss = { qrCopy = null }
+            )
         }
     }
 }
@@ -220,7 +268,13 @@ private fun BookHeader(book: Book) {
 }
 
 @Composable
-private fun CopyRow(copy: BookCopy, onClick: () -> Unit) {
+private fun CopyRow(
+    copy: BookCopy,
+    isbn: String?,
+    onClick: () -> Unit,
+    onQr: () -> Unit,
+    onAdd: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable { onClick() }
@@ -253,5 +307,21 @@ private fun CopyRow(copy: BookCopy, onClick: () -> Unit) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error
         )
+        if (!copy.isDeleted) {
+            IconButton(onClick = onAdd) {
+                Icon(
+                    Icons.Filled.AddShoppingCart,
+                    contentDescription = "Add label to cart",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onQr) {
+                Icon(
+                    Icons.Filled.QrCode2,
+                    contentDescription = "QR label for ${copy.copyNo}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

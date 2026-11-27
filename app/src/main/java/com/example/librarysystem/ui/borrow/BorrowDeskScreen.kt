@@ -1,5 +1,19 @@
 package com.example.librarysystem.ui.borrow
 
+import androidx.compose.runtime.setValue
+
+import androidx.compose.runtime.mutableStateOf
+
+import androidx.compose.runtime.getValue
+
+import androidx.compose.material.icons.Icons
+
+import com.example.librarysystem.ui.components.QrScannerDialog
+
+import androidx.compose.material3.IconButton
+
+import androidx.compose.material.icons.filled.QrCodeScanner
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -157,6 +172,7 @@ fun BorrowDeskScreen(
 @Composable
 private fun BorrowTab(vm: BorrowDeskViewModel) {
     val listState = rememberLazyListState()
+    var showScanner by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         PullToRefreshBox(
@@ -238,7 +254,15 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
                             value = vm.copyQuery,
                             onValueChange = vm::onCopyQueryChange,
                             placeholder = "e.g. The Hobbit or 9780547928227",
-                            maxLength = 100
+                            maxLength = 100,
+                            trailingIcon = {
+                                IconButton(onClick = { showScanner = true }) {
+                                    Icon(
+                                        Icons.Filled.QrCodeScanner,
+                                        contentDescription = "Scan a label"
+                                    )
+                                }
+                            }
                         )
 
                         if (vm.copyQuery.isBlank()) {
@@ -279,6 +303,13 @@ private fun BorrowTab(vm: BorrowDeskViewModel) {
         }
 
         BorrowActionBar(vm)
+    }
+
+    if (showScanner) {
+        QrScannerDialog(
+            onResult = { raw -> vm.onCopyQueryChange(raw) },
+            onDismiss = { showScanner = false }
+        )
     }
 }
 

@@ -1,5 +1,7 @@
 package com.example.librarysystem
 
+import com.example.librarysystem.data.LabelCart
+
 import android.os.Bundle
 import android.content.res.Configuration
 import androidx.activity.ComponentActivity
@@ -35,12 +37,12 @@ import com.example.librarysystem.ui.seats.SeatsScreen
 import com.example.librarysystem.ui.manage.BookFormScreen
 import com.example.librarysystem.ui.manage.BookManageScreen
 import com.example.librarysystem.ui.manage.CopyEditScreen
+import com.example.librarysystem.ui.manage.LabelCartScreen
 import com.example.librarysystem.ui.manage.ManageScreen
 import com.example.librarysystem.ui.borrow.BorrowDeskScreen
 import com.example.librarysystem.ui.damage.DamageEditScreen
 import com.example.librarysystem.ui.damage.DamageFormScreen
 import com.example.librarysystem.ui.damage.DamageSearchScreen
-import com.example.librarysystem.ui.trends.TrendsScreen
 import com.example.librarysystem.ui.home.HomeScreen
 import com.example.librarysystem.ui.navigation.staffTabs
 import com.example.librarysystem.ui.navigation.studentTabs
@@ -50,6 +52,7 @@ import com.example.librarysystem.ui.theme.LibrarySystemTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LabelCart.init(this)
         enableEdgeToEdge()
         setContent {
             LibrarySystemTheme {
@@ -104,7 +107,7 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     }
     // If we just entered staff mode while sitting on a student tab, move to the borrow desk.
     LaunchedEffect(staffMode) {
-        if (staffMode && current in setOf("home", "trends", "borrow", "seats")) {
+        if (staffMode && current in setOf("home", "borrow", "seats")) {
             stack = listOf("borrow-desk")
         }
     }
@@ -114,7 +117,8 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
     val hideBottomBar = inAuth || current in setOf(
         "manage-add", "manage-edit", "manage-copies",
         "manage-copy-edit", "manage-book", "category",
-        "damage-form", "damage-search", "damage-edit", "calendar"
+        "damage-form", "damage-search", "damage-edit", "calendar",
+        "label-cart"
     )
     // Landscape phones have very little vertical room: icons only, no labels.
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -200,7 +204,6 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     onDone = { goTab("home") },
                     onBack = ::back
                 )
-                "trends" -> TrendsScreen(onOpenBook = ::openBook)
                 "seats" -> SeatsScreen(onOpenCalendar = { go("calendar") })
                 "borrow" -> if (authVm.loggedInEmail == null) {
                     LaunchedEffect(Unit) { goTab("login") }
@@ -267,8 +270,10 @@ fun AppRoot(authVm: AuthViewModel = viewModel()) {
                     onOpenBook = { id ->
                         selectedBookId = id
                         go("manage-book")
-                    }
+                    },
+                    onOpenCart = { go("label-cart") }
                 )
+                "label-cart" -> LabelCartScreen(onBack = ::back)
                 "manage-book" -> selectedBookId?.let { id ->
                     BookManageScreen(
                         bookId = id,

@@ -1,5 +1,7 @@
 package com.example.librarysystem.ui.manage
 
+import com.example.librarysystem.data.model.BookCopy
+
 import com.example.librarysystem.data.ErrorText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +35,10 @@ class ManageViewModel : ViewModel() {
     var notice by mutableStateOf<String?>(null)
         private set
 
+    /** Copies grouped by book id, kept so long-press can add every copy to the label cart. */
+    var copiesByBook by mutableStateOf<Map<String, List<BookCopy>>>(emptyMap())
+        private set
+
     init {
         load()
     }
@@ -63,6 +69,7 @@ class ManageViewModel : ViewModel() {
                     emptyList()
                 }
                 val byBook = copies.groupBy { it.bookId }
+                copiesByBook = byBook
                 books = all.map { b ->
                     val list = byBook[b.id].orEmpty()
                     StaffBookRow(
