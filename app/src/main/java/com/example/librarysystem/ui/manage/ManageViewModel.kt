@@ -35,6 +35,9 @@ class ManageViewModel : ViewModel() {
     var notice by mutableStateOf<String?>(null)
         private set
 
+    var refreshing by mutableStateOf(false)
+        private set
+
     /** Copies grouped by book id, kept so long-press can add every copy to the label cart. */
     var copiesByBook by mutableStateOf<Map<String, List<BookCopy>>>(emptyMap())
         private set
@@ -82,6 +85,36 @@ class ManageViewModel : ViewModel() {
                 error = ErrorText.loadError(e)
             } finally {
                 loading = false
+            }
+        }
+    }
+
+    fun refresh() {
+        if (refreshing) return
+        viewModelScope.launch {
+            refreshing = true
+            try {
+                val all = BookRepository.allBooksForStaff()
+                val copies = try {
+                    BookRepository.allCopiesForStaff()
+                } catch (_: Exception) {
+                    emptyList()
+                }
+                val byBook = copies.groupBy { it.bookId }
+                copiesByBook = byBook
+                books = all.map { b ->
+                    val list = byBook[b.id].orEmpty()
+                    StaffBookRow(
+                        book = b,
+                        totalCopies = list.size,
+                        availableCopies = list.count { it.status == "available" }
+                    )
+                }
+                error = null
+            } catch (e: Exception) {
+                error = ErrorText.loadError(e)
+            } finally {
+                refreshing = false
             }
         }
     }

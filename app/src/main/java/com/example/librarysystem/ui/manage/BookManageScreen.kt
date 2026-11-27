@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -73,9 +74,27 @@ class BookManageViewModel(private val bookId: String) : ViewModel() {
         private set
     var error by mutableStateOf<String?>(null)
         private set
+    var refreshing by mutableStateOf(false)
+        private set
 
     init {
         load()
+    }
+
+    fun refresh() {
+        if (refreshing) return
+        viewModelScope.launch {
+            refreshing = true
+            try {
+                book = BookRepository.bookById(bookId)
+                copies = BookRepository.copiesForStaff(bookId)
+                error = null
+            } catch (e: Exception) {
+                error = "Could not load this book."
+            } finally {
+                refreshing = false
+            }
+        }
     }
 
     fun load() {
@@ -104,10 +123,6 @@ fun BookManageScreen(
     onEditCopy: (String) -> Unit,
     vm: BookManageViewModel = viewModel(key = "bookmanage-$bookId") { BookManageViewModel(bookId) }
 ) {
-    LaunchedEffect(Unit) {
-        if (vm.book != null) vm.load()
-    }
-
     var qrCopy by remember { mutableStateOf<BookCopy?>(null) }
     val context = LocalContext.current
 
@@ -141,8 +156,13 @@ fun BookManageScreen(
 
             else -> {
                 val book = vm.book ?: return@Scaffold
+                PullToRefreshBox(
+                    isRefreshing = vm.refreshing,
+                    onRefresh = vm::refresh,
+                    modifier = Modifier.fillMaxSize().padding(padding)
+                ) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -191,6 +211,7 @@ fun BookManageScreen(
                         }
                     }
                     item { Spacer(Modifier.height(88.dp)) }
+                }
                 }
             }
         }

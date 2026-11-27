@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -69,9 +70,14 @@ fun CategoryScreen(
 
             is BooksUiState.Ready -> {
                 val books = state.books.filter { (it.category ?: "Other") == category }
+                PullToRefreshBox(
+                    isRefreshing = vm.refreshing,
+                    onRefresh = vm::refresh,
+                    modifier = Modifier.fillMaxSize().padding(padding)
+                ) {
                 if (books.isEmpty()) {
                     Box(
-                        Modifier.fillMaxSize().padding(padding),
+                        Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -80,7 +86,7 @@ fun CategoryScreen(
                         )
                     }
                 } else {
-                    LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+                    LazyColumn(Modifier.fillMaxSize()) {
                         items(books, key = { it.id }) { book ->
                             CategoryBookRow(
                                 book = book,
@@ -93,6 +99,7 @@ fun CategoryScreen(
                             )
                         }
                     }
+                }
                 }
             }
         }

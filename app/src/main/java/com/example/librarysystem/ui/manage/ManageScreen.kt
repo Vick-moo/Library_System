@@ -23,6 +23,7 @@ import android.widget.Toast
 
 import androidx.compose.ui.platform.LocalContext
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.BadgedBox
 
 import androidx.compose.material3.Badge
@@ -87,10 +88,6 @@ fun ManageScreen(
     onOpenCart: () -> Unit,
     vm: ManageViewModel = viewModel()
 ) {
-    // Re-entering the screen (e.g. after saving a book) reuses the cached VM; refresh silently.
-    LaunchedEffect(Unit) {
-        if (vm.books.isNotEmpty()) vm.load()
-    }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
     var showScanner by remember { mutableStateOf(false) }
@@ -147,7 +144,11 @@ fun ManageScreen(
                     )
             )
 
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            PullToRefreshBox(
+                isRefreshing = vm.refreshing,
+                onRefresh = vm::refresh,
+                modifier = Modifier.weight(1f).fillMaxWidth()
+            ) {
                 when {
                     vm.loading -> Box(
                         Modifier.fillMaxSize(),

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -96,8 +97,13 @@ fun HomeScreen(
                 val categories = s.books.mapNotNull { it.category }.distinct().sorted()
                 val languages = s.books.mapNotNull { it.language }.distinct().sorted()
                 val groups = books.groupBy { it.category ?: "Other" }
-                LazyColumn(
+                PullToRefreshBox(
+                    isRefreshing = vm.refreshing,
+                    onRefresh = vm::refresh,
                     modifier = Modifier.fillMaxSize().padding(padding)
+                ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     item { GreetingBlock(displayName) }
                     item { PromoBannerCarousel() }
@@ -129,6 +135,7 @@ fun HomeScreen(
                             )
                         }
                     }
+                }
                 }
             }
         }

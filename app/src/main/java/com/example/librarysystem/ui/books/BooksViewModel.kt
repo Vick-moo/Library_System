@@ -34,6 +34,31 @@ class BooksViewModel : ViewModel() {
     var rankingIds by mutableStateOf<List<String>>(emptyList())
         private set
 
+    var refreshing by mutableStateOf(false)
+        private set
+
+    /** Re-reads the list without switching to the loading state, for pull-to-refresh. */
+    fun refresh() {
+        if (refreshing) return
+        viewModelScope.launch {
+            refreshing = true
+            try {
+                val books = if (query.isBlank()) {
+                    BookRepository.listBooks()
+                } else {
+                    BookRepository.searchBooks(query)
+                }
+                ratings = try { BookRepository.ratingsByBook() } catch (_: Exception) { emptyMap() }
+                availableIds = try { BookRepository.availableBookIds() } catch (_: Exception) { emptySet() }
+                state = BooksUiState.Ready(books)
+            } catch (e: Exception) {
+                // Keep whatever is on screen; a failed pull must not blank the list.
+            } finally {
+                refreshing = false
+            }
+        }
+    }
+
     fun loadRanking(ranking: String) {
         if (ranking == "None") {
             rankingIds = emptyList()
